@@ -47,6 +47,7 @@ async def get_file_contents(
 
     Args:
         repo: info related to the requested repo to fetch
+        path: relative path to the file/directory
         http_client: An instance of httpx.AsyncClient for making requests
         ref: The name of the commit/branch/tag. Default: the repository’s default branch
         github_token: Optional GitHub API token for authentication
@@ -85,7 +86,7 @@ async def get_file_contents(
         #     data = response.json()
         #     return format_github_tree_structure(data, f"{repo.owner}/{repo.repo_name}", None), True
         # else it's a raw text of file content
-        return response.text
+        return response.text, True
 
     except httpx.HTTPStatusError as e:
         print(f"GitHub API error fetching file/directory {path}@{ref or 'default'}: {e.response.status_code} - {e.response.text}", file=sys.stderr)

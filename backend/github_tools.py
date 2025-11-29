@@ -26,11 +26,11 @@ IMPORTANT_FILES = [
     'Pipfile',
 ]
 
-SKIP_PATTERNS = [
-    '__pycache__', 'node_modules', '.git', 'dist', 'build',
-    '.next', '.venv', 'venv', '.idea', '.vscode',
-    '*.min.js', '*.min.css', '.DS_Store',
-]
+# SKIP_PATTERNS = [ No need right now since i'm using allowed list
+#     '__pycache__', 'node_modules', '.git', 'dist', 'build',
+#     '.next', '.venv', 'venv', '.idea', '.vscode',
+#     '*.min.js', '*.min.css', '.DS_Store',
+# ]
 
 TREE_DEPTH = 2  # Just top-level structure
 MAX_FILE_SIZE = 5000  # chars, not bytes

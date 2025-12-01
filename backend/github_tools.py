@@ -38,7 +38,7 @@ class GitHubTools():
     # ]
 
     TREE_DEPTH = 2  # Just top-level structure
-    MAX_FILE_SIZE = 5000  # chars, not bytes
+    MAX_TOTAL_CHARS = 100_000  # ~25k tokens or 100kb
 
     @classmethod
     async def get_file_contents(
@@ -184,13 +184,13 @@ class GitHubTools():
             if not result[1] or not result[0]:
                 return "Error with getting files at root directory", False
 
-            files_at_root = result[0]
+            files_at_root = set[str](result[0])
             tasks = []
             files_to_fetch = []
 
             # 2. Queue up tasks for important files
-            for filename in files_at_root:
-                if filename in cls.IMPORTANT_FILES:
+            for filename in cls.IMPORTANT_FILES:
+                if filename in files_at_root:
                     tasks.append(cls.get_file_contents(repo, filename, http_client, ref, github_token))
                     files_to_fetch.append(filename)
             
@@ -202,10 +202,12 @@ class GitHubTools():
             
             # 4. Combine results
             context_parts = []
+            total_chars = 0
             for filename, (content, success) in zip(files_to_fetch, results):
-                if success and content:
+                if success and content and total_chars <= cls.MAX_TOTAL_CHARS:
                     context_parts.append(f"================================================\nFILE: {filename}\n================================================\n{content}\n")
-                    
+                    total_chars += len(content)  # stop after the new content exceed limit
+
             return "\n".join(context_parts), True
 
         except Exception as e:

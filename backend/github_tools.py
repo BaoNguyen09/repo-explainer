@@ -1,6 +1,6 @@
 import asyncio
 import sys
-from typing import Optional
+from typing import Any, Dict, List, Optional
 import httpx
 
 from schema import GitHubApiError, RepoInfo
@@ -37,7 +37,7 @@ class GitHubTools():
     #     '*.min.js', '*.min.css', '.DS_Store',
     # ]
 
-    TREE_DEPTH = 2  # Just top-level structure
+    TREE_DEPTH = 3  # Just top-level structures
     MAX_TOTAL_CHARS = 100_000  # ~25k tokens or 100kb
 
     @classmethod
@@ -169,6 +169,224 @@ class GitHubTools():
         except Exception as e:
             utils.logger.error(f"Error fetching or decoding file/directory {path}@{ref or 'default'}: {e}")
             raise GitHubApiError(f"Failed to process contents: {str(e)}") from e
+
+    @classmethod
+    def _build_hierarchical_tree(cls, flat_tree_list: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Converts a flat list of GitHub tree entries into a hierarchical
+        nested dictionary structure.
+        """
+        tree_root: Dict[str, Any] = {}
+        for item in flat_tree_list:
+            path_parts = item.get("path", "").split('/')
+            current_level = tree_root
+            for i, part in enumerate(path_parts):
+                if not part: # Should not happen with valid GitHub paths
+                    continue
+                
+                is_last_part = (i == len(path_parts) - 1)
+                
+                if is_last_part:
+                    # It's a file or an explicitly listed empty directory from the flat list
+                    current_level[part] = {"_type": item.get("type", "blob")} # 'blob/file' or 'tree/dir'
+                else:
+                    # It's a directory segment in the path
+                    if part not in current_level:
+                        current_level[part] = {"_type": "tree", "children": {}}
+                    elif "_type" not in current_level[part] or current_level[part]["_type"] not in ("tree", "dir"):
+                        # This case handles if a file and directory have the same prefix,
+                        # though unlikely with standard git structures. Prioritize tree structure.
+                        current_level[part] = {"_type": "tree", "children": {}}
+                    
+                    # Ensure 'children' exists if we are treating 'part' as a tree
+                    if "children" not in current_level[part]:
+                        current_level[part]["children"] = {}
+
+                    current_level = current_level[part]["children"]
+        return tree_root
+
+    @classmethod
+    def _format_tree_recursively(
+        cls,
+        tree_node: Dict[str, Any],
+        current_prefix: str,
+        lines_list: List[str],
+        current_depth: int,
+        max_depth: Optional[int]
+    ):
+        """
+        Recursively traverses the hierarchical tree and formats it into a list of strings.
+        """
+        if max_depth is not None and current_depth >= max_depth:
+            return
+
+        # Sort items: directories first (by type), then alphabetically by name
+        # GitHub API usually returns items sorted, but explicit sort is safer.
+        sorted_item_names = sorted(tree_node.keys())
+        
+        for i, name in enumerate(sorted_item_names):
+            item_data = tree_node[name]
+            is_last_child = (i == len(sorted_item_names) - 1)
+            
+            connector = "└── " if is_last_child else "├── "
+            line = current_prefix + connector + name
+            
+            is_directory = item_data.get("_type") == "tree"
+            if is_directory:
+                line += "/" # Add trailing slash for directories
+            
+            lines_list.append(line)
+            
+            if is_directory and "children" in item_data and item_data["children"]:
+                new_prefix = current_prefix + ("    " if is_last_child else "│   ")
+                cls._format_tree_recursively(
+                    item_data["children"],
+                    new_prefix,
+                    lines_list,
+                    current_depth + 1,
+                    max_depth
+                )
+
+    @classmethod
+    def format_github_tree_structure(
+        cls,
+        flat_tree_list: List[Dict[str, Any]],
+        repo_name_with_owner: str, # e.g., "baonguyen09/github-second-brain"
+        max_depth: Optional[int] = None
+    ) -> str:
+        """
+        Formats a flat list of GitHub tree entries into a human-readable,
+        indented tree structure string, with optional depth control.
+
+        Args:
+            flat_tree_list: The list of tree entries from GitHub API
+                            (e.g., from fetch_recursive_tree_from_github).
+            repo_name_with_owner: The name of the repository (e.g., "owner/repo") to use as the root.
+            max_depth: Optional maximum depth to display the tree.
+                    Depth 0 means only the root repo name.
+                    Depth 1 means root repo name and its direct children.
+                    None means full depth.
+
+        Returns:
+            A string representing the formatted directory tree.
+        """
+        if not flat_tree_list:
+            return f"Directory structure:\n└── {repo_name_with_owner}/\n    (Repository is empty or tree data not available)"
+
+        hierarchical_tree = cls._build_hierarchical_tree(flat_tree_list)
+        
+        lines = ["Directory structure:"]
+        
+        # Handle max_depth for the root line itself
+        if max_depth is not None and max_depth < 0: # Or treat 0 as only root
+            lines.append(f"└── {repo_name_with_owner}/")
+            return "\n".join(lines)
+
+        lines.append(f"└── {repo_name_with_owner}/")
+        
+        # The children of the root are at depth 0 for _format_tree_recursively
+        # So, if max_depth is 1, we want _format_tree_recursively to process current_depth 0.
+        # The max_depth for the recursive formatter should be relative to the repo root's children.
+        effective_max_depth_for_children = None
+        if max_depth is not None:
+            effective_max_depth_for_children = max_depth -1 # if max_depth=1, children_depth=0
+
+        cls._format_tree_recursively(
+            tree_node=hierarchical_tree,
+            current_prefix="    ", # Initial indent for children of the root
+            lines_list=lines,
+            current_depth=0, # Children of root are at depth 0 of the repo content tree
+            max_depth=effective_max_depth_for_children
+        )
+        
+        return "\n".join(lines)
+
+    @classmethod
+    async def fetch_directory_tree_with_depth(
+        cls,
+        repo: RepoInfo,
+        http_client: httpx.AsyncClient,
+        ref: Optional[str] = None,
+        github_token: Optional[str] = None,
+        depth: Optional[int] = 1,
+        full_depth: Optional[bool] = False,
+    ) -> str:
+        """
+        Fetch the tree from github and format it to be LLM-friendly
+
+        Args:
+            repo: info related to the requested repo to fetch
+            http_client: An instance of httpx.AsyncClient for making requests
+            ref: Branch name, tag, or commit SHA of specified tree
+            github_token: Optional GitHub API token for authentication
+            depth: The specified depth of the tree in int
+            full_depth: Boolean for fetching tree with full depth
+
+        Returns:
+            A string representing the formatted directory tree.
+
+        Raises:
+            GitHubApiError: If there's an issue communicating with the GitHub API
+                            or if the response is unexpected.
+        """
+        headers = {
+            "Accept": "application/vnd.github.v3+json",
+            "X-GitHub-Api-Version": "2022-11-28"
+        }
+        if github_token:
+            headers["Authorization"] = f"Bearer {github_token}"
+
+        # 1. Get the ref to use (default branch if None)
+        if not ref: # fetch repo info to get defaul branch name
+            repo_info_url = f"https://api.github.com/repos/{repo.owner}/{repo.repo_name}"
+            try:
+                repo_info_resp = await http_client.get(repo_info_url, headers=headers)
+                repo_info_resp.raise_for_status()
+                ref = repo_info_resp.json().get("default_branch", "main") # Fallback to main if somehow not found
+            except Exception as e:
+                raise GitHubApiError(
+                    message=f"Failed to fetch default branch for {repo.owner}/{repo.repo_name}: {str(e)}",
+                    status_code=getattr(e, 'response', None) and getattr(e.response, 'status_code', None)
+                ) from e
+
+        # 2. Get the tree recursively
+        tree_url = f"https://api.github.com/repos/{repo.owner}/{repo.repo_name}/git/trees/{ref}?recursive=1"
+
+        utils.logger.info(f"Fetching tree from: {tree_url}")
+        try:
+            tree_resp = await http_client.get(tree_url, headers=headers)
+            
+            if tree_resp.status_code == 404:
+                # This can happen if the ref (branch/tag/commit/tree_sha) doesn't exist
+                # or if the repository itself is not found or is private without auth.
+                raise GitHubApiError(
+                    message=f"Tree or ref '{ref}' not found for {repo.owner}/{repo.repo_name}. Or repository is private/inaccessible.",
+                    status_code=404,
+                    details=tree_resp.text
+                )
+            if tree_resp.status_code == 409: # Conflict - often for empty repository
+                utils.logger.warning(f"Warning: Received 409 Conflict for tree {repo.owner}/{repo.repo_name}@{ref}. Likely an empty repository. Returning empty tree.")
+                return []
+
+            tree_resp.raise_for_status() # For other HTTP errors
+            
+            tree_data = tree_resp.json()
+
+            if tree_data.get("truncated"):
+                utils.logger.warning(f"Warning: Tree data for {repo.owner}/{repo.repo_name}@{ref} was truncated by GitHub API. The returned list might be incomplete.")
+
+            return cls.format_github_tree_structure(tree_data["tree"], f"{repo.owner}/{repo.repo_name}", max_depth=None if full_depth else depth)
+
+        except httpx.HTTPStatusError as e:
+            raise GitHubApiError(
+                message=f"GitHub API HTTP error fetching tree for {repo.owner}/{repo.repo_name}@{ref}: {e.response.status_code}",
+                status_code=e.response.status_code,
+                details=e.response.text
+            ) from e
+        except httpx.RequestError as e:
+            raise GitHubApiError(message=f"HTTP request failed while fetching tree for {repo.owner}/{repo.repo_name}@{ref}: {str(e)}") from e
+        except Exception as e: # Catch-all for other unexpected errors like JSON decoding
+            raise GitHubApiError(message=f"An unexpected error occurred while fetching tree for {repo.owner}/{repo.repo_name}@{ref}: {str(e)}") from e
 
     @classmethod
     async def get_repo_context(

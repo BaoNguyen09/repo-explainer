@@ -396,7 +396,32 @@ class GitHubTools():
         ref: Optional[str] = None,
         github_token: Optional[str] = None,
     ) -> tuple[str, bool]:
+        """
+        Fetch key files in the repo to get general context
+
+        Args:
+            repo: info related to the requested repo to fetch
+            http_client: An instance of httpx.AsyncClient for making requests
+            ref: The name of the commit/branch/tag. Default: the repository’s default branch
+            github_token: Optional GitHub API token for authentication
+
+        Returns:
+            A string of concatenated content of key files found in root directory
+            Boolean as the status of the operation
+        """
         try:
+            context_parts = []
+            total_chars = 0
+            # Context #1: Repo structure
+            ##########################
+            tree = await cls.fetch_directory_tree_with_depth(repo=repo, http_client=http_client, depth=cls.TREE_DEPTH)
+            if len(tree) > 10000:
+                tree = "(Tree content cropped to 10k characters)\n" + tree[:10000]
+            context_parts.append(tree + "\n")
+            total_chars += len(tree)
+
+            # Context #2: File content
+            ##########################
             # 1. List files
             result = await cls.list_directory_files(repo, http_client, "", ref, github_token)
             if not result[1] or not result[0]:
@@ -419,10 +444,12 @@ class GitHubTools():
             results = await asyncio.gather(*tasks)
             
             # 4. Combine results
-            context_parts = []
-            total_chars = 0
             for filename, (content, success) in zip(files_to_fetch, results):
-                if success and content and total_chars <= cls.MAX_TOTAL_CHARS:
+                if success and content:
+                    if total_chars > cls.MAX_TOTAL_CHARS:
+                        context_parts.append("(Files content cropped to 100k characters)\n")
+                        break
+
                     context_parts.append(f"================================================\nFILE: {filename}\n================================================\n{content}\n")
                     total_chars += len(content)  # stop after the new content exceed limit
 

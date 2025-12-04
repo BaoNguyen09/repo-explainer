@@ -27,11 +27,14 @@ class ClaudeService:
             success: Boolean status
         """
 
-        SYSTEM_PROMPT = """You are an expert software engineer. Explain GitHub repositories 
-        clearly and concisely for developers who want to understand what a codebase does 
-        and how it works. Produce answer in Markdown format."""
+        SYSTEM_PROMPT = """You are an staff software engineer. Explain GitHub repositories 
+        clearly and concisely for curious developers who want to understand the codebase
+        Produce answer in Markdown format."""
 
         USER_PROMPT_TEMPLATE = """Explain this repository: {repo_name}
+
+        For output format, produce 3 main sections: How all main components connect, What
+        is this repo, and other info you think is important to include.
 
         Repository context:
         {repo_context}"""

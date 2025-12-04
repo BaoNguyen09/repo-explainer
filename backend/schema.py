@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Any, Optional
 from pydantic import BaseModel
 
@@ -11,3 +12,9 @@ class GitHubApiError(Exception):
         super().__init__(message)
         self.status_code = status_code
         self.details = details
+
+class ModelResponse(BaseModel):
+    explanation: str
+    repo: str
+    timestamp: datetime
+    cache: bool

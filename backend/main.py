@@ -12,7 +12,14 @@ app = FastAPI()
 def root():
     return "Welcome to Repo Explainer!"
 
-@app.get("/{owner}/{repo}")
+@app.get(
+    "/{owner}/{repo}",
+    responses={
+        403: {"description": "Repository is private or GitHub rate limit exceeded"},
+        404: {"description": "Repository not found"},
+        500: {"description": "Internal server error"}
+    }
+)
 async def explain_repo(owner: str, repo: str):
     try:
         async with httpx.AsyncClient() as client:
@@ -39,9 +46,22 @@ async def explain_repo(owner: str, repo: str):
             )
     except httpx.HTTPStatusError as e:
         # Handle errors from GitHub repo check
+        status_code = e.response.status_code
+        
+        error_messages = {
+            403: f"Repository '{owner}/{repo}' is private or access is forbidden.",
+            404: f"Repository '{owner}/{repo}' not found. Please check the owner and repository name.",
+            429: "Too many requests to GitHub. Please try again later.",
+        }
+        
+        detail = error_messages.get(
+            status_code, 
+            f"Error accessing repository '{owner}/{repo}' (HTTP {status_code})"
+        )
+        
         raise HTTPException(
-            status_code=e.response.status_code,
-            detail=f"Error accessing given repo: {e.response.status_code}"
+            status_code=status_code if status_code < 500 else 500,
+            detail=detail
         )
     except Exception as e:
         # Log and catch generic error for unexpected issues

@@ -41,7 +41,7 @@ async def explain_repo(owner: str, repo: str):
         # Handle errors from GitHub repo check
         raise HTTPException(
             status_code=e.response.status_code,
-            detail=f"Error accessing given repo: {e.response.text}"
+            detail=f"Error accessing given repo: {e.response.status_code}"
         )
     except Exception as e:
         # Log and catch generic error for unexpected issues

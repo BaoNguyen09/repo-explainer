@@ -1,10 +1,10 @@
 from fastapi import FastAPI, HTTPException, status
 import httpx
 
-from claude_service import ClaudeService
-from github_tools import GitHubTools
-import utils
-from schema import ModelResponse, RepoInfo
+from backend.claude_service import ClaudeService
+from backend.github_tools import GitHubTools
+from backend import utils
+from backend.schema import ModelResponse, RepoInfo
 
 app = FastAPI()
 

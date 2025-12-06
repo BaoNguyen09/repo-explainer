@@ -1,7 +1,6 @@
 from datetime import datetime
 import logging
-from zoneinfo import ZoneInfo
-import env
+from backend import env
 
 __all__ = [
     "date_now",

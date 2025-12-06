@@ -3,8 +3,9 @@ import sys
 from typing import Any, Dict, List, Optional
 import httpx
 
-from schema import GitHubApiError, RepoInfo
-import utils
+from backend.claude_service import ClaudeService
+from backend.schema import GitHubApiError, RepoInfo
+from backend import utils
 
 __all__ = ["GitHubTools"]
 

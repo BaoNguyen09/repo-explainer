@@ -1,6 +1,6 @@
 import anthropic
-import env, utils
-from schema import RepoInfo
+from backend import env, utils
+from backend.schema import RepoInfo
 
 __all__ = ["ClaudeService"]
 

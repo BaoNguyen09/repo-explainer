@@ -4,6 +4,5 @@ services:
     name: repo-explainer
     runtime: python
     repo: https://github.com/BaoNguyen09/repo-explainer
-    rootDir: backend
-    buildCommand: 'pip install -r requirements.txt'
-    startCommand: 'fastapi run --host 0.0.0.0 --port $PORT'
+    buildCommand: 'pip install -e .'
+    startCommand: 'fastapi run backend/main.py --host 0.0.0.0 --port $PORT'

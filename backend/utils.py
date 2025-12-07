@@ -13,4 +13,4 @@ logger = logging.getLogger(__name__)
 
 def date_now(timezone_name: str = env.TZ) -> datetime:
     """Creates a TZ-aware instance of datetime.now()"""
-    return datetime.now(ZoneInfo(timezone_name))
+    return datetime.now()

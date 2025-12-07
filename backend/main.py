@@ -1,12 +1,32 @@
 from fastapi import FastAPI, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
 import httpx
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 from backend.claude_service import ClaudeService
 from backend.github_tools import GitHubTools
 from backend import utils
 from backend.schema import ModelResponse, RepoInfo
 
+limiter = Limiter(key_func=get_remote_address)
 app = FastAPI()
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Allow only frontend url
+origins = [
+    "http://localhost:5173"
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/")
 def root():
@@ -20,6 +40,7 @@ def root():
         500: {"description": "Internal server error"}
     }
 )
+@limiter.limit("20/day")  # 20 requests/day per user
 async def explain_repo(owner: str, repo: str):
     try:
         async with httpx.AsyncClient() as client:

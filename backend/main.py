@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 import httpx
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -41,7 +41,7 @@ def root():
     }
 )
 @limiter.limit("20/day")  # 20 requests/day per user
-async def explain_repo(owner: str, repo: str):
+async def explain_repo(request: Request, owner: str, repo: str):
     try:
         async with httpx.AsyncClient() as client:
             # Validate repo exists (follows redirects automatically)

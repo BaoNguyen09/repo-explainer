@@ -56,6 +56,8 @@ async def explain_repo(
             # Fetch repo context
             repo_info = RepoInfo(owner=owner, repo_name=repo)
             github_token = request.headers.get("X-GitHub-Token") or env.GITHUB_TOKEN
+            if github_token == "":
+                github_token = None
             
             # Create GitHubTools instance with request-scoped config
             github = GitHubTools(client, github_token=github_token, ref=ref)

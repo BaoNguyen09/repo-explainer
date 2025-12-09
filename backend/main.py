@@ -1,3 +1,4 @@
+from typing import Optional
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 import httpx
@@ -5,9 +6,8 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
-from backend.claude_service import ClaudeService
-from backend.github_tools import GitHubTools
-from backend import utils
+from backend import ClaudeService, GitHubTools
+from backend import utils, env
 from backend.schema import ModelResponse, RepoInfo
 
 limiter = Limiter(key_func=get_remote_address)
@@ -41,7 +41,12 @@ def root():
     }
 )
 @limiter.limit("20/day")  # 20 requests/day per user
-async def explain_repo(request: Request, owner: str, repo: str):
+async def explain_repo(
+    request: Request, 
+    owner: str, 
+    repo: str,
+    ref: Optional[str] = None
+):
     try:
         async with httpx.AsyncClient() as client:
             # Validate repo exists (follows redirects automatically)
@@ -50,9 +55,13 @@ async def explain_repo(request: Request, owner: str, repo: str):
             
             # Fetch repo context
             repo_info = RepoInfo(owner=owner, repo_name=repo)
-            repo_content, success = await GitHubTools.get_repo_context(repo_info, http_client=client)
+            github_token = request.headers.get("X-GitHub-Token") or env.GITHUB_TOKEN
+            
+            # Create GitHubTools instance with request-scoped config
+            github = GitHubTools(client, github_token=github_token, ref=ref)
+            repo_content, success = await github.get_repo_context(repo_info)
             if not success:
-                 raise HTTPException(status_code=500, detail="Failed to fetch repository context")
+                raise HTTPException(status_code=500, detail="Failed to fetch repository context")
 
             # Generate explanation with Claude
             explanation, success = await ClaudeService.explain_repo(repo_info, repo_content)

@@ -1,33 +1,86 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
 import './App.css'
+import { useState } from 'react';
+
+interface FormResult {
+  explanation: string;
+  repo: string;
+  timestamp: Date;
+  cache: boolean;
+}
+
+function ResultDisplay({data} : {data: FormResult | null}) {
+  if (!data) {
+    return (
+      <p>Processing the repo for you. Result will appear here once it's done.</p>
+    );
+  }
+  return (
+    <div>
+      <h3>Submission Successful!</h3>
+      <p>Status: {data.explanation}</p>
+      <p>Repository: {data.repo}</p>
+      <p>Time: {data.timestamp.toLocaleDateString()}</p>
+    </div>
+  );
+}
+
+function InputForm() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [resultData, setResultData] = useState<FormResult | null>(null);
+  const [error, setError] = useState(null);
+
+  async function query(formData: FormData) {
+    setIsLoading(true);
+    setResultData(null);
+    setError(null);
+
+    try {
+      // parse the url for owner and repo name
+      const query = formData.get("query") as string;
+      
+      const response = await fetch(``);
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+
+      const data = await response.json(); // Convert the response body to a JavaScript object
+      setResultData(data);
+
+    } catch (err: Error) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+    
+
+    setIsLoading(false);
+    setResultData(null);
+  }
+
+  return (
+    <div>
+      <form action={query}>
+        <input name='query' placeholder='Enter your GitHub Repo URL here'/>
+        <button type="submit" disabled={isLoading}>
+          { isLoading ? "Submitting" : "Explain" }
+        </button>
+      </form>
+
+      {isLoading ? (
+        <p>Loading results...</p>
+      ) : (
+        <ResultDisplay data={resultData} />
+      )}
+    </div>
+  );
+}
 
 function App() {
-  const [count, setCount] = useState(0)
 
   return (
     <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
+      <h1>Welcome to Repo Explainer</h1>
+      <InputForm />
     </>
   )
 }

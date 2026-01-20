@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { MermaidDiagram } from '../MermaidDiagram';
+import { ShellCodeBlock } from '../ShellCodeBlock';
 import './MarkdownRenderer.css';
 
 interface MarkdownRendererProps {
@@ -16,6 +17,36 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
+          pre({ children, ...props }) {
+            // Check if the pre contains a code element with shell/bash language
+            if (children && typeof children === 'object' && 'props' in children) {
+              const codeProps = children.props;
+              const className = codeProps?.className || '';
+              const match = /language-(\w+)/.exec(className);
+              const language = match ? match[1].toLowerCase() : '';
+              
+              if (language === 'shell' || language === 'bash' || language === 'sh') {
+                // Extract code content
+                const codeChildren = codeProps?.children;
+                let codeString = '';
+                if (Array.isArray(codeChildren)) {
+                  codeString = codeChildren
+                    .map((child) => (typeof child === 'string' ? child : String(child)))
+                    .join('');
+                } else if (typeof codeChildren === 'string') {
+                  codeString = codeChildren;
+                } else {
+                  codeString = String(codeChildren);
+                }
+                
+                const trimmedCode = codeString.replace(/\n$/, '');
+                return <ShellCodeBlock code={trimmedCode} language={language} />;
+              }
+            }
+            
+            // For other pre blocks, render normally
+            return <pre {...props}>{children}</pre>;
+          },
           code({ className, children, ...props }) {
             const match = /language-(\w+)/.exec(className || '');
             const language = match ? match[1].toLowerCase() : '';
@@ -35,7 +66,6 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
             const trimmedCode = codeString.replace(/\n$/, '');
 
             // Only render as Mermaid if explicitly marked as 'mermaid'
-            // Explicitly exclude other languages like 'shell', 'bash', etc.
             if (language === 'mermaid') {
               const diagramId = `diagram-${mermaidRef.current++}`;
               return (
@@ -43,8 +73,17 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
               );
             }
 
-            // For all other code blocks (including shell, bash, etc.), render normally
-            // ReactMarkdown automatically wraps code blocks in <pre> tags
+            // For inline code (no className), render normally
+            if (!className) {
+              return (
+                <code className={className} {...props}>
+                  {children}
+                </code>
+              );
+            }
+
+            // For code blocks, let the pre handler take care of shell/bash
+            // Otherwise render normally
             return (
               <code className={className} {...props}>
                 {children}

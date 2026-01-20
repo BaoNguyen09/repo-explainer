@@ -73,7 +73,7 @@
   color: #d14;
 }
 
-.markdown-content pre {
+.markdown-content pre:not(.shell-code-block) {
   background-color: #f6f8fa;
   border: 1px solid #e1e4e8;
   border-radius: 6px;
@@ -82,7 +82,7 @@
   margin-bottom: 1em;
 }
 
-.markdown-content pre code {
+.markdown-content pre:not(.shell-code-block) code {
   background-color: transparent;
   padding: 0;
   color: #333;

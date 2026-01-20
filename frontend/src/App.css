@@ -1,21 +1,81 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+.app {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #fff;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 3rem 2rem;
+  max-width: 1000px;
+  width: 100%;
+  margin: 0 auto;
 }
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
+
+.hero-section {
+  text-align: center;
+  margin-bottom: 4rem;
+  max-width: 100%;
+  width: 100%;
 }
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+
+.main-title {
+  font-size: 3.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 0 0 1.5rem 0;
+  color: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  position: relative;
+}
+
+.title-text {
+  display: inline-block;
+}
+
+.sparkle {
+  font-size: 2rem;
+  display: inline-block;
+  animation: sparkle 2s ease-in-out infinite;
+}
+
+.sparkle-left {
+  color: #ef4444;
+}
+
+.sparkle-right {
+  color: #10b981;
+}
+
+@keyframes sparkle {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.1);
+  }
+}
+
+.description {
+  color: #666;
+  font-size: 1.125rem;
+  line-height: 1.6;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.description p {
+  margin: 0;
 }
 
 @keyframes logo-spin {
@@ -39,4 +99,28 @@
 
 .read-the-docs {
   color: #888;
+}
+
+@media (max-width: 640px) {
+  .main-content {
+    padding: 1.5rem 1rem;
+  }
+
+  .hero-section {
+    margin-bottom: 2rem;
+  }
+
+  .main-title {
+    font-size: 2.25rem;
+    gap: 0.75rem;
+  }
+
+  .sparkle {
+    font-size: 1.5rem;
+  }
+
+  .description {
+    font-size: 0.95rem;
+    padding: 0 0.5rem;
+  }
 }

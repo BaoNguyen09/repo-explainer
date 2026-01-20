@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FiCopy, FiDownload } from 'react-icons/fi';
+import { FiCopy, FiDownload, FiCheck } from 'react-icons/fi';
 import { MarkdownRenderer } from '../MarkdownRenderer';
 import type { FormResult } from '../../types';
 import './ResultDisplay.css';
@@ -53,12 +53,12 @@ export function ResultDisplay({ data }: ResultDisplayProps) {
           <button
             className="copy-all-btn"
             onClick={handleCopyAll}
-            title="Copy all as raw text"
+            title={copied ? 'Copied!' : 'Copy all as raw text'}
             aria-label="Copy all as raw text"
             data-copied={copied}
           >
-            <FiCopy />
-            <span>Copy all</span>
+            {copied ? <FiCheck /> : <FiCopy />}
+            <span>{copied ? 'Copied!' : 'Copy all'}</span>
           </button>
           <button
             className="download-btn"

@@ -62,22 +62,6 @@
   background-color: #10b981;
 }
 
-.copy-all-btn[data-copied="true"]::after {
-  content: 'Copied!';
-  position: absolute;
-  top: -35px;
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: #333;
-  color: white;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  white-space: nowrap;
-  pointer-events: none;
-  z-index: 1000;
-}
-
 .copy-all-btn:hover {
   background-color: #ea580c;
   transform: translate(-1px, -1px);

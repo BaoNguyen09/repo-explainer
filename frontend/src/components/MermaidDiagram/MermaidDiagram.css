@@ -1,0 +1,141 @@
+.mermaid-container {
+  margin: 2em 0;
+  background-color: #fff;
+  border: 1px solid #e1e4e8;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.mermaid-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background-color: #f6f8fa;
+  border-bottom: 1px solid #e1e4e8;
+}
+
+.mermaid-controls-left {
+  display: flex;
+  align-items: center;
+}
+
+.mermaid-label {
+  font-size: 0.875rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.mermaid-controls-right {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.mermaid-control-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background-color: transparent;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #666;
+  transition: all 0.2s;
+}
+
+.mermaid-control-btn:hover {
+  background-color: #e5e7eb;
+  color: #333;
+  border-color: #9ca3af;
+}
+
+.mermaid-control-btn:active {
+  background-color: #d1d5db;
+}
+
+.mermaid-wrapper {
+  position: relative;
+  width: 100%;
+  height: 600px;
+  overflow: hidden;
+  background-color: #fff;
+}
+
+.mermaid-transform-wrapper {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.mermaid-zoom-controls {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background-color: rgba(255, 255, 255, 0.9);
+  padding: 0.5rem;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.mermaid-zoom-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background-color: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #666;
+  transition: all 0.2s;
+}
+
+.mermaid-zoom-btn:hover {
+  background-color: #f3f4f6;
+  color: #333;
+  border-color: #9ca3af;
+}
+
+.mermaid-zoom-btn:active {
+  background-color: #e5e7eb;
+}
+
+.mermaid-content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  min-height: 600px;
+  padding: 2rem;
+  cursor: grab;
+  position: relative;
+}
+
+.mermaid-content:active {
+  cursor: grabbing;
+}
+
+.mermaid-content svg {
+  display: block;
+  max-width: none;
+  margin: 0 auto;
+}
+
+.mermaid-loading {
+  margin: 2em 0;
+  padding: 2rem;
+  text-align: center;
+  color: #666;
+  background-color: #f9f9f9;
+  border-radius: 6px;
+}
+

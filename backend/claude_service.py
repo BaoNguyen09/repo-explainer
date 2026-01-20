@@ -1,6 +1,7 @@
 import anthropic
 from backend import env, utils
 from backend.schema import RepoInfo
+from backend.prompts import SYSTEM_PROMPT, USER_PROMPT_TEMPLATE
 
 __all__ = ["ClaudeService"]
 
@@ -26,18 +27,6 @@ class ClaudeService:
             explanation: The generated explanation
             success: Boolean status
         """
-
-        SYSTEM_PROMPT = """You are an staff software engineer. Explain GitHub repositories 
-        clearly and concisely for curious developers who want to understand the codebase
-        Produce answer in Markdown format."""
-
-        USER_PROMPT_TEMPLATE = """Explain this repository: {repo_name}
-
-        For output format, produce 3 main sections: How all main components connect, What
-        is this repo, and other info you think is important to include.
-
-        Repository context:
-        {repo_context}"""
         repo_name = f"{repo.owner}/{repo.repo_name}"
         prompt = USER_PROMPT_TEMPLATE.format(repo_name=repo_name, repo_context=repo_context)
 

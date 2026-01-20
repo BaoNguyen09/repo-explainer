@@ -3,6 +3,7 @@ import { parseGitHubUrl } from '../../utils/parseGitHubUrl';
 import type { FormResult } from '../../types';
 import { LoadingSpinner } from '../LoadingSpinner';
 import { ResultDisplay } from '../ResultDisplay';
+import { config } from '../../config/api';
 import './InputForm.css';
 
 export function InputForm() {
@@ -33,7 +34,7 @@ export function InputForm() {
 
       console.log(`Fetching explanation for: ${parsed.owner}/${parsed.repo}`);
       
-      const response = await fetch(`http://127.0.0.1:8000/${parsed.owner}/${parsed.repo}`);
+      const response = await fetch(`${config.apiUrl}/${parsed.owner}/${parsed.repo}`);
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ detail: 'Network response was not ok' }));
@@ -59,11 +60,11 @@ export function InputForm() {
   };
 
   const exampleRepos = [
-    { url: 'github.com/baonguyen09/repo-explainer', label: 'RepoExplainer'},
-    { url: 'github.com/fastapi/fastapi', label: 'FastAPI' },
-    { url: 'github.com/streamlit/streamlit', label: 'Streamlit' },
-    { url: 'github.com/tom-doerr/api-analytics', label: 'api-analytics' },
-    { url: 'github.com/monkeytypegame/monkeytype', label: 'Monkeytype' }
+    { url: 'https://github.com/baonguyen09/repo-explainer', label: 'RepoExplainer'},
+    { url: 'https://github.com/fastapi/fastapi', label: 'FastAPI' },
+    { url: 'https://github.com/streamlit/streamlit', label: 'Streamlit' },
+    { url: 'https://github.com/tom-doerr/api-analytics', label: 'api-analytics' },
+    { url: 'https://github.com/monkeytypegame/monkeytype', label: 'Monkeytype' }
   ];
 
   return (

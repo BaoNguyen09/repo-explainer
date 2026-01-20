@@ -34,10 +34,13 @@ jobs:
         
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
-      - run: |
+      - name: Build frontend
+        run: |
           cd frontend
           bun install
           bun run build
+        env:
+          VITE_BACKEND_API_URL: ${{ secrets.VITE_BACKEND_API_URL || 'http://127.0.0.1:8000' }}
 
       - name: Upload artifacts
         uses: actions/upload-pages-artifact@v4

@@ -1,0 +1,74 @@
+.app-header {
+  width: 100%;
+  background-color: #fff;
+}
+
+.header-content {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 1.5rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.logo-link {
+  text-decoration: none;
+  display: inline-block;
+  transition: opacity 0.2s;
+}
+
+.logo-link:hover {
+  opacity: 0.8;
+}
+
+.logo {
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.logo-part {
+  color: #333;
+}
+
+.logo-part-accent {
+  color: #f97316;
+}
+
+.header-nav {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #333;
+  text-decoration: none;
+  font-size: 0.9rem;
+  line-height: 1;
+  transition: color 0.2s;
+}
+
+.nav-link:hover {
+  color: #f97316;
+}
+
+.nav-icon {
+  width: 16px;
+  height: 16px;
+  display: inline-block;
+}
+
+.header-divider {
+  width: 100%;
+  height: 3px;
+  background-color: #000000;
+}
+
+

@@ -248,7 +248,7 @@ export function MermaidDiagram({ code, diagramId }: MermaidDiagramProps) {
             }, 200);
           }}
         >
-          {({ zoomIn, zoomOut, resetTransform, centerView }) => (
+          {({ zoomIn, zoomOut, centerView }) => (
             <>
               <div className="mermaid-zoom-controls">
                 <button

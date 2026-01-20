@@ -20,7 +20,7 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
           pre({ children, ...props }) {
             // Check if the pre contains a code element with shell/bash language
             if (children && typeof children === 'object' && 'props' in children) {
-              const codeProps = children.props;
+              const codeProps = children.props as { className?: string; children?: unknown };
               const className = codeProps?.className || '';
               const match = /language-(\w+)/.exec(className);
               const language = match ? match[1].toLowerCase() : '';
@@ -35,7 +35,7 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
                     .join('');
                 } else if (typeof codeChildren === 'string') {
                   codeString = codeChildren;
-                } else {
+                } else if (codeChildren !== undefined && codeChildren !== null) {
                   codeString = String(codeChildren);
                 }
                 

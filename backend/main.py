@@ -15,10 +15,9 @@ app = FastAPI()
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# Allow only frontend url
-origins = [
-    "http://localhost:5173"
-]
+# Allow frontend URLs from environment variable
+# CORS_ORIGINS can be a comma-separated list: "http://localhost:5173,https://yourdomain.com"
+origins = [origin.strip() for origin in env.CORS_ORIGINS.split(",") if origin.strip()]
 
 app.add_middleware(
     CORSMiddleware,

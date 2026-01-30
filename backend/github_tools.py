@@ -31,10 +31,10 @@ class GitHubTools:
         'Pipfile',
     ]
 
-    # SKIP_PATTERNS = [ No need right now since i'm using allowed list
+    # SKIP_PATTERNS = [ No need right now since i'm only using allowed list
     #     '__pycache__', 'node_modules', '.git', 'dist', 'build',
     #     '.next', '.venv', 'venv', '.idea', '.vscode',
-    #     '*.min.js', '*.min.css', '.DS_Store',
+    #     '*.min.js', '*.min.css', '.DS_Store', '.lock'
     # ]
 
     TREE_DEPTH = 3  # Just top-level structures
@@ -107,7 +107,7 @@ class GitHubTools:
             # returned_content_type = response.headers["Content-Type"]
             # if returned_content_type == "application/json; charset=utf-8": # this is a dir, so format it and return
             #     data = response.json()
-            #     return format_github_tree_structure(data, f"{repo.owner}/{repo.repo_name}", None), True
+            #     return _format_github_tree_structure(data, f"{repo.owner}/{repo.repo_name}", None), True
             # else it's a raw text of file content
             return response.text, True
 
@@ -247,7 +247,7 @@ class GitHubTools:
                 )
 
     @classmethod
-    def format_github_tree_structure(
+    def _format_github_tree_structure(
         cls,
         flat_tree_list: List[Dict[str, Any]],
         repo_name_with_owner: str,
@@ -356,7 +356,7 @@ class GitHubTools:
             if tree_data.get("truncated"):
                 utils.logger.warning(f"Warning: Tree data for {repo.owner}/{repo.repo_name}@{ref} was truncated by GitHub API.")
 
-            return self.format_github_tree_structure(
+            return self._format_github_tree_structure(
                 tree_data["tree"], 
                 f"{repo.owner}/{repo.repo_name}", 
                 max_depth=None if full_depth else depth

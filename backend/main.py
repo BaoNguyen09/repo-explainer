@@ -1,17 +1,54 @@
+from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from typing import Optional
+
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+import httpx
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-import httpx
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
 from backend import ClaudeService, GitHubTools
 from backend import utils, env
+from backend.database import RepoExplanation, SessionLocal
 from backend.schema import ModelResponse, RepoInfo
 
+scheduler = AsyncIOScheduler()
+
+
+def cleanup_expired_cache() -> None:
+    """Delete expired cache entries."""
+    db = SessionLocal()
+    try:
+        deleted = db.query(RepoExplanation).filter(
+            RepoExplanation.expires_at < datetime.now(timezone.utc)
+        ).delete()
+        db.commit()
+        utils.logger.info("Cleaned up %s expired cache entries", deleted)
+    except Exception as e:
+        db.rollback()
+        utils.logger.exception("Error cleaning cache: %s", e)
+    finally:
+        db.close()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    scheduler.add_job(
+        cleanup_expired_cache,
+        "interval",
+        hours=6,
+        id="cleanup_cache",
+    )
+    scheduler.start()
+    yield
+    scheduler.shutdown(wait=False)
+
+
 limiter = Limiter(key_func=get_remote_address)
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 

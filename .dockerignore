@@ -1,0 +1,33 @@
+# Git and env
+.git
+.gitignore
+.env
+.env.*
+
+# Python
+.venv
+.venv.*
+venv
+__pycache__
+*.py[cod]
+*.egg-info
+.pytest_cache
+.mypy_cache
+.ruff_cache
+htmlcov
+.coverage
+
+# Frontend (backend-only image)
+frontend
+
+# Docs and tooling (not needed in image)
+.vscode
+*.md
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose.yml
+
+# CI
+.github

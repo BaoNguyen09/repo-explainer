@@ -72,6 +72,28 @@ bun install
 
 Run the backend API first so the frontend can talk to it; use the same `VITE_BACKEND_API_URL` as in `frontend/.env.development`.
 
+## Docker (backend)
+
+The backend can run in a container for deployment on any cloud (Render, Fly.io, Cloud Run, ECS, etc.).
+
+**Build** (from repo root):
+```bash
+docker build -t repo-explainer .
+```
+
+**Run locally:**
+```bash
+docker run -p 8000:8000 \
+  -e DATABASE_URL="postgresql+psycopg2://user:pass@host:5432/db" \
+  -e ANTHROPIC_API_KEY="your-key" \
+  -e CORS_ORIGINS="http://localhost:5173" \
+  repo-explainer
+```
+
+- The image uses `PORT` (default 8000); set `-e PORT=8000` or let your platform set it.
+- Run migrations before or after start (e.g. a separate job or init container): `alembic upgrade head` with the same `DATABASE_URL`.
+- See [backend/.env.example](backend/.env.example) and [ENV_SETUP.md](ENV_SETUP.md) for all env vars.
+
 ## Alembic migrations
 
 Migrations live in `backend/alembic/`. Run from repo root (where `alembic.ini` lives):

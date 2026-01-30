@@ -41,7 +41,8 @@ jobs:
           bun run build
         env:
           VITE_BACKEND_API_URL: ${{ secrets.VITE_BACKEND_API_URL || 'http://127.0.0.1:8000' }}
-
+      - name: Add CNAME file
+        run: echo "repex.thienbao.dev" > frontend/dist/CNAME
       - name: Upload artifacts
         uses: actions/upload-pages-artifact@v4
         with:

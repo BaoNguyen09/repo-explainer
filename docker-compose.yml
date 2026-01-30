@@ -1,0 +1,24 @@
+# Local PostgreSQL for testing migrations and app with a real DB.
+# From repo root: docker compose up -d
+# Then set DATABASE_URL in .env (see ENV_SETUP.md or backend/.env.example).
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: repo-explainer-db
+    environment:
+      POSTGRES_USER: repoexplainer
+      POSTGRES_PASSWORD: repoexplainer
+      POSTGRES_DB: repoexplainer
+    ports:
+      - "5432:5432"
+    volumes:
+      - repoexplainer_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U repoexplainer -d repoexplainer"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  repoexplainer_pgdata:

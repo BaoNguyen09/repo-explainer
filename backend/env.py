@@ -17,5 +17,5 @@ GITHUB_TOKEN: str = os.environ.get("GITHUB_TOKEN", "")
 CORS_ORIGINS: str = os.environ.get("CORS_ORIGINS", "http://localhost:5173")
 
 # Database-related
-DATABASE_URL: str = os.environ.get("DATABASE_URL", "")
+DATABASE_URL: str = os.environ.get("DATABASE_URL", "postgresql+psycopg2://repoexplainer:repoexplainer@localhost:5432/repoexplainer")
 CACHE_TTL_DAYS: int = int(os.environ.get("CACHE_TTL_DAYS", "7"))

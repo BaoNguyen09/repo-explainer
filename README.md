@@ -72,7 +72,19 @@ bun install
 
 Run the backend API first so the frontend can talk to it; use the same `VITE_BACKEND_API_URL` as in `frontend/.env.development`.
 
-## Docker (backend)
+## One-command local dev (Docker)
+
+Run backend, frontend, and Postgres with a single command (from repo root):
+
+```bash
+# Create .env at repo root (same folder as docker-compose.yml) with ANTHROPIC_API_KEY=... and optionally GITHUB_TOKEN.
+# Copy from backend/.env.example, then add your keys. Docker Compose needs this file to exist.
+docker compose up
+```
+
+Then open **http://localhost:5173** (frontend) and **http://localhost:8000** (API docs). The backend runs migrations on startup. To run in the background: `docker compose up -d`.
+
+## Docker (backend only, for deployment)
 
 The backend can run in a container for deployment on any cloud (Render, Fly.io, Cloud Run, ECS, etc.).
 

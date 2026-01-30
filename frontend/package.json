@@ -18,6 +18,9 @@
     "react-zoom-pan-pinch": "^3.7.0",
     "remark-gfm": "^4.0.1"
   },
+  "optionalDependencies": {
+    "@rollup/rollup-linux-x64-gnu": "*"
+  },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
     "@types/node": "^24.10.1",

@@ -1,6 +1,7 @@
-# Local PostgreSQL for testing migrations and app with a real DB.
-# From repo root: docker compose up -d
-# Then set DATABASE_URL in .env (see ENV_SETUP.md or backend/.env.example).
+# One-command local dev: backend + frontend + Postgres.
+# From repo root: docker compose up
+# Then open http://localhost:5173 (frontend) and http://localhost:8000 (API).
+# For ANTHROPIC_API_KEY etc.: create .env at repo root (or copy backend/.env.example to .env).
 
 services:
   postgres:
@@ -20,5 +21,37 @@ services:
       timeout: 5s
       retries: 5
 
+  backend:
+    build: .
+    container_name: repo-explainer-api
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg2://repoexplainer:repoexplainer@postgres:5432/repoexplainer
+      CORS_ORIGINS: http://localhost:5173
+      PORT: "8000"
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: sh -c "alembic upgrade head && exec fastapi run backend/main.py --host 0.0.0.0 --port $${PORT:-8000}"
+
+  frontend:
+    image: node:20-slim
+    container_name: repo-explainer-web
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_BACKEND_API_URL: http://localhost:8000
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    depends_on:
+      - backend
+
 volumes:
   repoexplainer_pgdata:
+  frontend_node_modules:

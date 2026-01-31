@@ -18,6 +18,20 @@ from backend.schema import ModelResponse, RepoInfo
 scheduler = AsyncIOScheduler()
 
 
+def _user_facing_error(msg: str) -> str:
+    """Map known API/backend errors to user-friendly messages; pass through the rest."""
+    if not msg:
+        return "Something went wrong. Please try again."
+    msg_lower = msg.lower()
+    if "prompt is too long" in msg_lower or ("too long" in msg_lower and "token" in msg_lower):
+        return "This repository has too much content to analyze (over the model's limit). Try a smaller repo or a specific branch."
+    if "connection" in msg_lower and "failed" in msg_lower:
+        return "Could not reach the AI service. Check your connection or try again in a moment."
+    if "rate limit" in msg_lower or "429" in msg:
+        return "Rate limit exceeded. Please try again later."
+    return msg
+
+
 def cleanup_expired_cache() -> None:
     """Delete expired cache entries."""
     db = SessionLocal()
@@ -104,7 +118,10 @@ async def explain_repo(
             # Generate explanation with Claude
             explanation, success = await ClaudeService.explain_repo(repo_info, repo_content)
             if not success:
-                raise HTTPException(status_code=500, detail="Failed to generate explanation")
+                raise HTTPException(
+                    status_code=500,
+                    detail=_user_facing_error(explanation or "Failed to generate explanation"),
+                )
 
             return ModelResponse(
                 explanation=explanation,
@@ -133,7 +150,7 @@ async def explain_repo(
         )
     except Exception as e:
         # Log and catch generic error for unexpected issues
-        utils.logger.error(f"Error in explain_repo(): {str(e)}")
+        utils.logger.exception(f"Error in explain_repo(): {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
             detail="An error occurred internally on the server"

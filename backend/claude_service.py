@@ -49,7 +49,7 @@ class ClaudeService:
             return message.content[0].text, True
             
         except Exception as e:
-            utils.logger.error(f"{cls.__name__}.explain_repo(): {e}")
+            utils.logger.exception(f"{cls.__name__}.explain_repo(): {e}")
             return str(e), False
 
     

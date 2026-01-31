@@ -26,8 +26,6 @@ class GitHubTools:
         'Makefile',
         'LICENSE',
         'CONTRIBUTING.md',
-        'package-lock.json', # Lock files for context
-        'yarn.lock',
         'Pipfile',
     ]
 
@@ -39,6 +37,7 @@ class GitHubTools:
 
     TREE_DEPTH = 3  # Just top-level structures
     MAX_TOTAL_CHARS = 100_000  # ~25k tokens or 100kb
+    MAX_FILE_CHARS = 30_000   # Cap per-file so one huge file (e.g. lockfile) doesn't dominate
 
     def __init__(
         self, 
@@ -417,15 +416,18 @@ class GitHubTools:
             # 3. Run in parallel
             results = await asyncio.gather(*tasks)
             
-            # 4. Combine results
+            # 4. Combine results (cap each file size and total context)
             for filename, (content, success) in zip(files_to_fetch, results):
                 if success and content:
-                    if total_chars > self.MAX_TOTAL_CHARS:
-                        context_parts.append("(Files content cropped to 100k characters)\n")
+                    # Cap single-file size so one huge file (e.g. package-lock.json) doesn't blow the limit
+                    if len(content) > self.MAX_FILE_CHARS:
+                        content = content[: self.MAX_FILE_CHARS] + "\n... (file truncated for length)\n"
+                    add_len = len(content)
+                    if total_chars + add_len > self.MAX_TOTAL_CHARS:
+                        context_parts.append("(Remaining files skipped to stay under context limit.)\n")
                         break
-
                     context_parts.append(f"================================================\nFILE: {filename}\n================================================\n{content}\n")
-                    total_chars += len(content)
+                    total_chars += add_len
 
             return "\n".join(context_parts), True
 

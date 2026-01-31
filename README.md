@@ -2,6 +2,8 @@
 
 A FastAPI backend that explains GitHub repositories using Claude AI, plus a React frontend. Backend dependencies are in `pyproject.toml` (pip or uv); frontend uses npm or bun.
 
+**Features:** Fetches repo structure and key files (README, package.json, etc.), sends context to Claude, and returns an explanation. Context is capped (per-file and total) so large repos don’t exceed model limits; users see clear errors (e.g. “repository too large”, “rate limit”) instead of a bare 500.
+
 ## Installation
 
 ### Backend

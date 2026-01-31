@@ -3,7 +3,7 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background-color: #fff;
+  background-color: var(--color-bg);
 }
 
 .main-content {
@@ -29,7 +29,7 @@
   font-weight: 700;
   line-height: 1.2;
   margin: 0 0 1.5rem 0;
-  color: #000;
+  color: var(--color-text-strong);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -98,7 +98,7 @@
 }
 
 .read-the-docs {
-  color: #888;
+  color: var(--color-text-muted);
 }
 
 @media (max-width: 640px) {

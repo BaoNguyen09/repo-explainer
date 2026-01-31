@@ -4,10 +4,10 @@
   margin: 0 auto;
   padding: 3.5rem;
   text-align: left;
-  background-color: #faf9f6;
-  border: 3px solid #111827;
+  background-color: var(--color-bg-elevated);
+  border: 3px solid var(--color-border);
   border-radius: 12px;
-  box-shadow: 10px 10px 0 #111827;
+  box-shadow: 10px 10px 0 var(--color-shadow);
 }
 
 .form-container form {
@@ -31,23 +31,24 @@
   flex: 1;
   padding: 1.25rem 1.5rem;
   font-size: 1.125rem;
-  border: 2px solid #111827;
+  border: 2px solid var(--color-border);
   border-radius: 8px;
   transition: border-color 0.3s, box-shadow 0.2s, transform 0.1s;
   min-width: 0;
-  background-color: #fff;
-  box-shadow: 4px 4px 0 #111827;
+  background-color: var(--color-input-bg);
+  color: var(--color-text);
+  box-shadow: 4px 4px 0 var(--color-shadow);
 }
 
 .form-container input:focus {
   outline: none;
-  border-color: #f97316;
+  border-color: var(--color-accent);
   transform: translate(-1px, -1px);
-  box-shadow: 5px 5px 0 #111827, 0 0 0 3px rgba(249, 115, 22, 0.15);
+  box-shadow: 5px 5px 0 var(--color-shadow), 0 0 0 3px rgba(249, 115, 22, 0.15);
 }
 
 .form-container input:disabled {
-  background-color: #f5f5f5;
+  background-color: var(--color-input-disabled);
   cursor: not-allowed;
 }
 
@@ -89,7 +90,7 @@
 
 .examples-label {
   margin-bottom: 1.25rem;
-  color: #666;
+  color: var(--color-text-muted);
   font-size: 1rem;
 }
 
@@ -103,26 +104,26 @@
 .example-btn {
   padding: 0.75rem 1.5rem;
   font-size: 1rem;
-  background-color: #fff;
-  color: #333;
-  border: 2px solid #111827;
+  background-color: var(--color-input-bg);
+  color: var(--color-text-strong);
+  border: 2px solid var(--color-border);
   border-radius: 6px;
   cursor: pointer;
   transition: background-color 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s, transform 0.1s;
-  box-shadow: 4px 4px 0 #111827;
+  box-shadow: 4px 4px 0 var(--color-shadow);
 }
 
 .example-btn:hover:not(:disabled) {
-  background-color: #f5f5f5;
-  border-color: #f97316;
-  color: #f97316;
+  background-color: var(--color-bg-elevated);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
   transform: translate(-1px, -1px);
-  box-shadow: 5px 5px 0 #111827;
+  box-shadow: 5px 5px 0 var(--color-shadow);
 }
 
 .example-btn:active:not(:disabled) {
   transform: translate(0, 0);
-  box-shadow: 3px 3px 0 #111827;
+  box-shadow: 3px 3px 0 var(--color-shadow);
 }
 
 .example-btn:disabled {
@@ -134,10 +135,10 @@
 .error-message {
   margin: 1rem 0;
   padding: 1rem;
-  background-color: #fee;
-  border: 1px solid #fcc;
+  background-color: var(--color-error-bg);
+  border: 1px solid var(--color-error-border);
   border-radius: 4px;
-  color: #c33;
+  color: var(--color-error-text);
 }
 
 .error-message p {

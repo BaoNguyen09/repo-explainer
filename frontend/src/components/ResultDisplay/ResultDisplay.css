@@ -2,10 +2,10 @@
 .result-container {
   margin-top: 2rem;
   padding: 2rem;
-  background-color: #faf9f6;
+  background-color: var(--color-bg-elevated);
   border-radius: 12px;
-  border: 3px solid #111827;
-  box-shadow: 6px 6px 0 #111827;
+  border: 3px solid var(--color-border);
+  box-shadow: 6px 6px 0 var(--color-shadow);
 }
 
 .result-header {
@@ -28,7 +28,7 @@
 .result-container h3 {
   margin-top: 0;
   margin-bottom: 0;
-  color: #333;
+  color: var(--color-text-strong);
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -42,9 +42,9 @@
   gap: 0.5rem;
   padding: 0.5rem 1rem;
   margin: 0;
-  background-color: #f97316;
+  background-color: var(--color-accent);
   color: white;
-  border: 2px solid #111827;
+  border: 2px solid var(--color-border);
   border-radius: 4px;
   cursor: pointer;
   transition: background-color 0.3s, box-shadow 0.2s, transform 0.1s;
@@ -55,7 +55,7 @@
   font-size: 0.9rem;
   font-weight: 500;
   white-space: nowrap;
-  box-shadow: 4px 4px 0 #111827;
+  box-shadow: 4px 4px 0 var(--color-shadow);
 }
 
 .copy-all-btn[data-copied="true"] {
@@ -91,9 +91,9 @@
   gap: 0.5rem;
   padding: 0.5rem 1rem;
   margin: 0;
-  background-color: #f97316;
+  background-color: var(--color-accent);
   color: white;
-  border: 2px solid #111827;
+  border: 2px solid var(--color-border);
   border-radius: 4px;
   cursor: pointer;
   transition: background-color 0.3s, box-shadow 0.2s, transform 0.1s;
@@ -104,19 +104,19 @@
   font-size: 0.9rem;
   font-weight: 500;
   white-space: nowrap;
-  box-shadow: 4px 4px 0 #111827;
+  box-shadow: 4px 4px 0 var(--color-shadow);
 }
 
 .download-btn:hover {
-  background-color: #ea580c;
+  background-color: var(--color-accent-hover);
   transform: translate(-1px, -1px);
-  box-shadow: 5px 5px 0 #111827;
+  box-shadow: 5px 5px 0 var(--color-shadow);
 }
 
 .download-btn:active {
-  background-color: #c2410c;
+  background-color: var(--color-accent-hover);
   transform: translate(0, 0);
-  box-shadow: 3px 3px 0 #111827;
+  box-shadow: 3px 3px 0 var(--color-shadow);
 }
 
 .download-btn svg {
@@ -149,11 +149,11 @@
 .explanation-scroll {
   max-height: 520px;
   overflow: auto;
-  background-color: #fff6df;
-  border: 2px solid #111827;
+  background-color: var(--color-bg-elevated);
+  border: 2px solid var(--color-border);
   border-radius: 10px;
   padding: 1.25rem;
-  box-shadow: 4px 4px 0 #111827;
+  box-shadow: 4px 4px 0 var(--color-shadow);
 }
 
 @media (max-width: 640px) {

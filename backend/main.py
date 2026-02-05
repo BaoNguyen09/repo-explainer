@@ -4,7 +4,7 @@ from typing import Optional
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import httpx
-from fastapi import FastAPI, HTTPException, Request, status
+from fastapi import FastAPI, HTTPException, Request, Query, status
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -95,7 +95,8 @@ async def explain_repo(
     request: Request, 
     owner: str, 
     repo: str,
-    ref: Optional[str] = None
+    ref: Optional[str] = None,
+    instructions: Optional[str] = Query(None)
 ):
     try:
         async with httpx.AsyncClient() as client:
@@ -116,7 +117,7 @@ async def explain_repo(
                 raise HTTPException(status_code=500, detail="Failed to fetch repository context")
 
             # Generate explanation with Claude
-            explanation, success = await ClaudeService.explain_repo(repo_info, repo_content)
+            explanation, success = await ClaudeService.explain_repo(repo_info, repo_content, instructions=instructions)
             if not success:
                 raise HTTPException(
                     status_code=500,

@@ -1,5 +1,7 @@
 """Prompts used for Claude API interactions."""
 
+from typing import Optional
+
 SYSTEM_PROMPT = """You are an staff software engineer. Explain GitHub repositories 
 clearly and concisely for curious developers who want to understand the codebase.
 Produce answer in Markdown format.
@@ -43,9 +45,9 @@ IMPORTANT FORMATTING RULES:
 4. Use mermaid ONLY for visual flow/connection diagrams, NEVER for directory structures.
 5. The repository structure section MUST appear AFTER any Mermaid diagrams."""
 
-USER_PROMPT_TEMPLATE = """Explain this repository: {repo_name}
+USER_PROMPT_TEMPLATE = """{user_instructions_section}Explain this repository: {repo_name}
 
-REQUIRED OUTPUT FORMAT:
+REQUIRED OUTPUT FORMAT: Use exactly these 4 sections. When the user gave a request above, tailor the content inside these sections to answer it—do not add a fifth section or a separate "user request" block at the end.
 1. **What is this repo?**
    - Brief overview of the repository's purpose and functionality
 
@@ -67,4 +69,31 @@ Repository context:
 {repo_context}
 
 Remember: The Repository Structure section MUST be included AFTER any Mermaid diagrams and formatted as a shell code block with tree characters."""
+
+
+def build_user_prompt(repo_name: str, repo_context: str, user_instructions: Optional[str] = None) -> str:
+    """
+    Build the user prompt with optional user instructions.
+    
+    Args:
+        repo_name: The repository name (owner/repo)
+        repo_context: The formatted repository context
+        user_instructions: Optional user instructions/questions
+        
+    Returns:
+        The formatted prompt string
+    """
+    if user_instructions and user_instructions.strip():
+        user_instructions_section = (
+            "USER REQUEST (answer this by tailoring the content inside sections 1–4 only; do NOT add a separate section or paragraph at the end for this):\n"
+            f'"{user_instructions.strip()}"\n\n'
+        )
+    else:
+        user_instructions_section = ""
+    
+    return USER_PROMPT_TEMPLATE.format(
+        repo_name=repo_name,
+        repo_context=repo_context,
+        user_instructions_section=user_instructions_section
+    )
 

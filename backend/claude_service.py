@@ -1,7 +1,9 @@
+from typing import Optional
+
 import anthropic
 from backend import env, utils
 from backend.schema import RepoInfo
-from backend.prompts import SYSTEM_PROMPT, USER_PROMPT_TEMPLATE
+from backend.prompts import SYSTEM_PROMPT, build_user_prompt
 
 __all__ = ["ClaudeService"]
 
@@ -15,6 +17,7 @@ class ClaudeService:
         cls,
         repo: RepoInfo,
         repo_context: str,
+        instructions: Optional[str] = None,
     ) -> tuple[str, bool]:
         """
         Send repo context to Claude and get explanation.
@@ -22,13 +25,14 @@ class ClaudeService:
         Args:
             repo: info related to the requested repo to fetch
             repo_context: The formatted context from GitHubTools.get_repo_context()
+            instructions: Optional user instructions/questions to tailor the explanation
             
         Returns:
             explanation: The generated explanation
             success: Boolean status
         """
         repo_name = f"{repo.owner}/{repo.repo_name}"
-        prompt = USER_PROMPT_TEMPLATE.format(repo_name=repo_name, repo_context=repo_context)
+        prompt = build_user_prompt(repo_name, repo_context, instructions)
 
         try:
             utils.logger.info(f"{cls.__name__}.explain_repo(): Set up Claude client")

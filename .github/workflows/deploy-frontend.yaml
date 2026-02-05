@@ -41,6 +41,12 @@ jobs:
           bun run build
         env:
           VITE_BACKEND_API_URL: ${{ secrets.VITE_BACKEND_API_URL || 'http://127.0.0.1:8000' }}
+          VITE_GIT_SHA: ${{ github.sha }}
+      - name: List built output
+        run: |
+          echo "Built from commit: ${{ github.sha }}"
+          ls -la frontend/dist
+          ls -la frontend/dist/assets 2>/dev/null || true
       - name: Add CNAME file
         run: echo "repex.thienbao.dev" > frontend/dist/CNAME
       - name: Upload artifacts

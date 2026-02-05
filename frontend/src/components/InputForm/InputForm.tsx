@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { parseGitHubUrl } from '../../utils/parseGitHubUrl';
 import type { FormResult } from '../../types';
 import { LoadingSpinner } from '../LoadingSpinner';
@@ -6,12 +6,45 @@ import { ResultDisplay } from '../ResultDisplay';
 import { config } from '../../config/api';
 import './InputForm.css';
 
+/**
+ * Parse pathname like "/owner/repo" into { owner, repo }.
+ * Used when user lands on e.g. repex.thienbao.dev/facebook/react (e.g. from extension).
+ */
+function parsePathRepo(pathname: string): { owner: string; repo: string } | null {
+  const segments = pathname.split('/').filter(Boolean);
+  if (segments.length !== 2) return null;
+  const [owner, repo] = segments;
+  if (!owner || !repo) return null;
+  return { owner, repo };
+}
+
 export function InputForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [resultData, setResultData] = useState<FormResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const instructionsRef = useRef<HTMLTextAreaElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const hasAutoSubmittedRef = useRef(false);
+
+  // When URL path is /owner/repo (e.g. from extension), prefill form and auto-submit once
+  useEffect(() => {
+    if (hasAutoSubmittedRef.current) return;
+    const { pathname, search } = window.location;
+    const parsed = parsePathRepo(pathname);
+    if (!parsed || !inputRef.current || !formRef.current) return;
+
+    hasAutoSubmittedRef.current = true;
+    inputRef.current.value = `https://github.com/${parsed.owner}/${parsed.repo}`;
+
+    const params = new URLSearchParams(search);
+    const instructions = params.get('instructions');
+    if (instructions && instructionsRef.current) {
+      instructionsRef.current.value = instructions;
+    }
+
+    formRef.current.requestSubmit();
+  }, []);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -95,7 +128,7 @@ export function InputForm() {
 
   return (
     <div className="form-container">
-      <form onSubmit={handleSubmit}>
+      <form ref={formRef} onSubmit={handleSubmit}>
         <div className="input-wrapper">
           <input 
             ref={inputRef}

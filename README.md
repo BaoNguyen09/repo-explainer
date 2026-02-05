@@ -1,6 +1,8 @@
 # RepoExplainer
+<img width="auto" height="400" alt="image" src="https://github.com/user-attachments/assets/c8d50046-c94c-41c4-a61c-d6b6b4c4656e" />
 
-A FastAPI backend that explains GitHub repositories using Claude AI, plus a React frontend. Backend dependencies are in `pyproject.toml` (pip or uv); frontend uses npm or bun.
+
+An app that explains GitHub repositories using AI quickly.
 
 **Features:**
 - Fetches repo structure and key files (README, package.json, etc.), sends context to Claude, and returns a structured explanation (overview, architecture diagram, directory tree, tech stack).

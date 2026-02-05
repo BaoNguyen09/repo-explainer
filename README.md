@@ -2,7 +2,11 @@
 
 A FastAPI backend that explains GitHub repositories using Claude AI, plus a React frontend. Backend dependencies are in `pyproject.toml` (pip or uv); frontend uses npm or bun.
 
-**Features:** Fetches repo structure and key files (README, package.json, etc.), sends context to Claude, and returns an explanation. Context is capped (per-file and total) so large repos don’t exceed model limits; users see clear errors (e.g. “repository too large”, “rate limit”) instead of a bare 500.
+**Features:**
+- Fetches repo structure and key files (README, package.json, etc.), sends context to Claude, and returns a structured explanation (overview, architecture diagram, directory tree, tech stack).
+- **Optional user instructions:** Add questions or focus (e.g. "Focus on API design") via the instructions field; the explanation is tailored within the same structure (no extra section).
+- Context is capped (per-file and total) so large repos don’t exceed model limits; users see clear errors (e.g. “repository too large”, “rate limit”) instead of a bare 500.
+- Frontend: light/dark theme toggle, example repo buttons, example instruction buttons, compact default layout.
 
 ## Installation
 
@@ -81,7 +85,7 @@ Run backend, frontend, and Postgres with a single command (from repo root):
 ```bash
 # Create .env at repo root (same folder as docker-compose.yml) with ANTHROPIC_API_KEY=... and optionally GITHUB_TOKEN.
 # Copy from backend/.env.example, then add your keys. Docker Compose needs this file to exist.
-docker compose up
+docker compose up --build
 ```
 
 Then open **http://localhost:5173** (frontend) and **http://localhost:8000** (API docs). The backend runs migrations on startup. To run in the background: `docker compose up -d`.

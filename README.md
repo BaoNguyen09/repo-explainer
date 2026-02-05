@@ -1,4 +1,4 @@
-# repo-explainer
+# RepoExplainer
 
 A FastAPI backend that explains GitHub repositories using Claude AI, plus a React frontend. Backend dependencies are in `pyproject.toml` (pip or uv); frontend uses npm or bun.
 

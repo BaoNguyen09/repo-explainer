@@ -9,9 +9,13 @@ import './InputForm.css';
 /**
  * Parse pathname like "/owner/repo" into { owner, repo }.
  * Used when user lands on e.g. repex.thienbao.dev/facebook/react (e.g. from extension).
+ * Strips Vite base URL (e.g. / or /repo-explainer/) so it works with any deployment path.
  */
 function parsePathRepo(pathname: string): { owner: string; repo: string } | null {
-  const segments = pathname.split('/').filter(Boolean);
+  const base = (import.meta.env.BASE_URL ?? '/').replace(/\/$/, '') || '';
+  const pathWithoutBase = base ? pathname.slice(base.length) || '/' : pathname;
+  const normalized = pathWithoutBase.startsWith('/') ? pathWithoutBase : `/${pathWithoutBase}`;
+  const segments = normalized.split('/').filter(Boolean);
   if (segments.length !== 2) return null;
   const [owner, repo] = segments;
   if (!owner || !repo) return null;

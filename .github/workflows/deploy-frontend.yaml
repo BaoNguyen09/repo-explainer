@@ -49,6 +49,9 @@ jobs:
           ls -la frontend/dist/assets 2>/dev/null || true
       - name: Add CNAME file
         run: echo "repex.thienbao.dev" > frontend/dist/CNAME
+      # GitHub Pages returns 404.html for unknown paths (e.g. /owner/repo). Copy index so SPA loads and URL-based auto-submit works.
+      - name: Add 404.html for SPA fallback
+        run: cp frontend/dist/index.html frontend/dist/404.html
       - name: Upload artifacts
         uses: actions/upload-pages-artifact@v4
         with:

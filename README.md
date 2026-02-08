@@ -5,15 +5,15 @@
 An AI app that explains GitHub repositories through agentic file exploration.
 
 ## Features
-- **AI-powered summaries** — Paste a GitHub repo URL and get an overview, architecture diagram, directory tree, and tech stack.
-- **Ask what you need** — Add instructions (e.g. "Focus on API design") and the explanation is tailored to your question.
-- **Smart file discovery** — The AI chooses which files to read from the repo tree; we fetch them in parallel for fast results.
-- **Safe for large repos** — Context limits and clear errors (e.g. "repository too large", "rate limit") instead of cryptic failures.
-- **Polished UI** — Dark/light theme, example repos and prompts, compact layout.
+- **AI-powered summaries** -- Paste a GitHub repo URL and get an overview, architecture diagram, directory tree, and tech stack.
+- **Ask what you need** -- Add instructions (e.g. "Focus on API design") and the explanation is tailored to your question.
+- **Smart file discovery** -- The AI chooses which files to read from the repo tree; we fetch them in parallel for fast results.
+- **Safe for large repos** -- Context limits and clear errors (e.g. "repository too large", "rate limit") instead of cryptic failures.
+- **Polished UI** -- Dark/light theme, example repos and prompts, compact layout.
 
 ---
 
-**Like this project?** [Star the repo](https://github.com/baonguyen09/repo-explainer) on GitHub — it helps others find it. Want to improve it? Contributions are welcome! See [Contributing](#contributing) below.
+**Like this project?** [Star the repo](https://github.com/baonguyen09/repo-explainer) on GitHub -- it helps others find it. Want to improve it? Contributions are welcome! See [Contributing](#contributing) below.
 
 ---
 
@@ -125,23 +125,23 @@ docker run -p 8000:8000 \
 
 Migrations live in `backend/alembic/`. Run from repo root (where `alembic.ini` lives):
 
-- `alembic upgrade head` — apply all migrations
-- `alembic downgrade -1` — roll back one revision
-- `alembic revision --autogenerate -m "description"` — new migration from models
-- `alembic current` — show current revision
-- `alembic history -v` — show history
+- `alembic upgrade head` -- apply all migrations
+- `alembic downgrade -1` -- roll back one revision
+- `alembic revision --autogenerate -m "description"` -- new migration from models
+- `alembic current` -- show current revision
+- `alembic history -v` -- show history
 
 Set `DATABASE_URL` in `.env` before running. See [ENV_SETUP.md](ENV_SETUP.md).
 
 ## Contributing
 
-We welcome contributions — whether it’s a bug fix, a new feature, or better docs. Here’s how to get started.
+We welcome contributions -- whether it’s a bug fix, a new feature, or better docs. Here’s how to get started.
 
 ### How to contribute
 
-1. **Star the repo** — If you find this useful, starring helps others discover it.
-2. **Open an issue** — Report bugs or suggest ideas in [GitHub Issues](https://github.com/baonguyen09/repo-explainer/issues). Check existing issues first to avoid duplicates.
-3. **Submit a pull request** — For code or doc changes:
+1. **Star the repo** -- If you find this useful, starring helps others discover it.
+2. **Open an issue** -- Report bugs or suggest ideas in [GitHub Issues](https://github.com/baonguyen09/repo-explainer/issues). Check existing issues first to avoid duplicates.
+3. **Submit a pull request** -- For code or doc changes:
    - Fork the repo and create a branch from `main` (e.g. `fix/typo-readme` or `feat/your-feature`).
    - Make your changes. Keep commits focused and messages clear.
    - Run tests and linting (see [Development](#development)).
@@ -149,7 +149,7 @@ We welcome contributions — whether it’s a bug fix, a new feature, or better 
 
 ### Guidelines
 
-- **Code style:** Backend — follow [ruff](https://docs.astral.sh/ruff/) and [Black](https://black.readthedocs.io/) (config in `pyproject.toml`). Frontend — use the existing ESLint config.
+- **Code style:** Backend -- follow [ruff](https://docs.astral.sh/ruff/) and [Black](https://black.readthedocs.io/) (config in `pyproject.toml`). Frontend -- use the existing ESLint config.
 - **Tests:** Add or update tests for behavior changes; run `pytest backend/tests/` before submitting.
 - **Docs:** Update the README or ENV_SETUP.md if you change setup, env vars, or usage.
 - **Scope:** Keep PRs reasonably scoped; for large features, open an issue first to discuss.

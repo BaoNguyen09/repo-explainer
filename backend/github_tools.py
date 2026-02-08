@@ -38,6 +38,7 @@ class GitHubTools:
     TREE_DEPTH = 3  # Just top-level structures
     MAX_TOTAL_CHARS = 100_000  # ~25k tokens or 100kb
     MAX_FILE_CHARS = 30_000   # Cap per-file so one huge file (e.g. lockfile) doesn't dominate
+    MAX_FILES_TO_FETCH = 25   # Cap merged list (IMPORTANT_FILES + LLM-suggested) for rate limits
 
     def __init__(
         self, 
@@ -394,39 +395,31 @@ class GitHubTools:
             context_parts.append(tree + "\n")
             total_chars += len(tree)
 
-            # Context #2: File content
-            # 1. List files
+            # Context #2: File content (agentic: LLM suggests paths + IMPORTANT_FILES, fetch in parallel)
             result = await self.list_directory_files(repo, "")
             if not result[1] or not result[0]:
                 return "Error with getting files at root directory", False
 
             files_at_root = set(result[0])
-            tasks = []
-            files_to_fetch = []
+            root_important = [f for f in self.IMPORTANT_FILES if f in files_at_root]
+            llm_paths = await ClaudeService.get_files_to_explore(tree)
+            all_paths = list(dict.fromkeys(root_important + llm_paths))[: self.MAX_FILES_TO_FETCH]
 
-            # 2. Queue up tasks for important files
-            for filename in self.IMPORTANT_FILES:
-                if filename in files_at_root:
-                    tasks.append(self.get_file_contents(repo, filename))
-                    files_to_fetch.append(filename)
-            
-            if not tasks:
+            if not all_paths:
                 return "No key documentation files found in root.", True
 
-            # 3. Run in parallel
+            tasks = [self.get_file_contents(repo, p) for p in all_paths]
             results = await asyncio.gather(*tasks)
-            
-            # 4. Combine results (cap each file size and total context)
-            for filename, (content, success) in zip(files_to_fetch, results):
+
+            for path, (content, success) in zip(all_paths, results):
                 if success and content:
-                    # Cap single-file size so one huge file (e.g. package-lock.json) doesn't blow the limit
                     if len(content) > self.MAX_FILE_CHARS:
                         content = content[: self.MAX_FILE_CHARS] + "\n... (file truncated for length)\n"
                     add_len = len(content)
                     if total_chars + add_len > self.MAX_TOTAL_CHARS:
                         context_parts.append("(Remaining files skipped to stay under context limit.)\n")
                         break
-                    context_parts.append(f"================================================\nFILE: {filename}\n================================================\n{content}\n")
+                    context_parts.append(f"================================================\nFILE: {path}\n================================================\n{content}\n")
                     total_chars += add_len
 
             return "\n".join(context_parts), True

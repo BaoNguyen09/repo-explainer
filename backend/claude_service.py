@@ -1,17 +1,52 @@
-from typing import Optional
+from typing import List, Optional
 
 import anthropic
 from backend import env, utils
 from backend.schema import RepoInfo
-from backend.prompts import SYSTEM_PROMPT, build_user_prompt
+from backend.prompts import (
+    SYSTEM_PROMPT,
+    build_user_prompt,
+    FILES_TO_EXPLORE_SYSTEM,
+    build_files_to_explore_user,
+    parse_paths_from_response,
+)
 
 __all__ = ["ClaudeService"]
 
+
 class ClaudeService:
-    """Handles all Claude API interactions"""
-    
+    """Handles all Claude API interactions."""
+
     MODEL = "claude-haiku-4-5-20251001"
-    
+
+    @classmethod
+    async def _call_llm(cls, system: str, user_content: str, max_tokens: int = 4096) -> str:
+        """Single LLM call. Returns the assistant text."""
+        client = anthropic.AsyncAnthropic(api_key=env.ANTHROPIC_API_KEY)
+        message = await client.messages.create(
+            model=cls.MODEL,
+            max_tokens=max_tokens,
+            system=system,
+            messages=[{"role": "user", "content": user_content}],
+        )
+        return message.content[0].text
+
+    @classmethod
+    async def get_files_to_explore(cls, tree_str: str) -> List[str]:
+        """
+        Ask the LLM which files to read based on the directory tree. Returns a list of paths.
+        On failure or empty response, returns [] so caller can fall back to IMPORTANT_FILES only.
+        """
+        try:
+            user_content = build_files_to_explore_user(tree_str)
+            utils.logger.info(f"{cls.__name__}.get_files_to_explore(): Fetching AI-suggested files")
+            response = await cls._call_llm(FILES_TO_EXPLORE_SYSTEM, user_content)
+            paths = parse_paths_from_response(response)
+            return paths if paths else []
+        except Exception as e:
+            utils.logger.warning(f"{cls.__name__}.get_files_to_explore failed: {e}, falling back to empty list")
+            return []
+
     @classmethod
     async def explain_repo(
         cls,

@@ -1,6 +1,60 @@
 """Prompts used for Claude API interactions."""
 
-from typing import Optional
+import re
+from typing import List, Optional
+
+# --- Files-to-explore (agentic discovery: LLM suggests paths from tree) ---
+
+FILES_TO_EXPLORE_SYSTEM = """You are a principal engineer. Given a repository's directory tree, you must choose which files are most valuable to read to understand the codebase (purpose, architecture, key config).
+
+Rules:
+- Return ONLY file paths, not directory, one per line. No explanations, no bullets, no markdown.
+- Paths must be relative to the repository root and must appear in the tree (do not invent paths).
+- Prioritize: README/docs, config (package.json, requirements.txt, etc.), main entry points, and key source files. Prefer a small set (up to 15 paths) so the list stays focused.
+
+Output format: plain text, exactly one path per line. Example:
+
+README.md
+package.json
+backend/main.py
+backend/requirements.txt
+frontend/src/App.tsx
+"""
+
+FILES_TO_EXPLORE_USER_TEMPLATE = """Directory tree of the repository:
+
+<tree>
+{tree}
+</tree>
+
+List the file paths to read (one per line, relative to repo root). No other text."""
+
+
+def build_files_to_explore_user(tree_str: str) -> str:
+    """Build user prompt for the files-to-explore LLM call."""
+    return FILES_TO_EXPLORE_USER_TEMPLATE.format(tree=tree_str)
+
+
+def parse_paths_from_response(text: str) -> List[str]:
+    """
+    Parse LLM response into a list of file paths. Tolerates markdown code blocks and extra lines.
+    Returns empty list on parse failure or if no valid paths found.
+    """
+    if not text or not text.strip():
+        return []
+    out = []
+    raw = text.strip()
+    if raw.startswith("```"):
+        raw = re.sub(r"^```\w*\n?", "", raw)
+        raw = re.sub(r"\n?```\s*$", "", raw)
+    for line in raw.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or line.startswith("<"):
+            continue
+        line = re.sub(r"^[\-\*]\s+", "", line).strip()
+        if line and " " not in line:
+            out.append(line)
+    return out
 
 SYSTEM_PROMPT = """You are an staff software engineer. Explain GitHub repositories 
 clearly and concisely for curious developers who want to understand the codebase.

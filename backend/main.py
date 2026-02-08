@@ -85,15 +85,6 @@ app.add_middleware(
 def root():
     return "Welcome to Repo Explainer!"
 
-async def fake_video_streamer():
-    for i in range(10):
-        await asyncio.sleep(2)
-        yield b"some fake video bytes"
-
-@app.get("/stream")
-async def main():
-    return StreamingResponse(fake_video_streamer())
-
 @app.get(
     "/{owner}/{repo}",
     responses={

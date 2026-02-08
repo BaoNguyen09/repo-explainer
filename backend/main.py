@@ -1,11 +1,14 @@
+import asyncio
+import json
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Any, Optional
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import httpx
 from fastapi import FastAPI, HTTPException, Request, Query, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -32,37 +35,37 @@ def _user_facing_error(msg: str) -> str:
     return msg
 
 
-def cleanup_expired_cache() -> None:
-    """Delete expired cache entries."""
-    db = SessionLocal()
-    try:
-        deleted = db.query(RepoExplanation).filter(
-            RepoExplanation.expires_at < datetime.now(timezone.utc)
-        ).delete()
-        db.commit()
-        utils.logger.info("Cleaned up %s expired cache entries", deleted)
-    except Exception as e:
-        db.rollback()
-        utils.logger.exception("Error cleaning cache: %s", e)
-    finally:
-        db.close()
+# def cleanup_expired_cache() -> None:
+#     """Delete expired cache entries."""
+#     db = SessionLocal()
+#     try:
+#         deleted = db.query(RepoExplanation).filter(
+#             RepoExplanation.expires_at < datetime.now(timezone.utc)
+#         ).delete()
+#         db.commit()
+#         utils.logger.info("Cleaned up %s expired cache entries", deleted)
+#     except Exception as e:
+#         db.rollback()
+#         utils.logger.exception("Error cleaning cache: %s", e)
+#     finally:
+#         db.close()
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    scheduler.add_job(
-        cleanup_expired_cache,
-        "interval",
-        hours=6,
-        id="cleanup_cache",
-    )
-    scheduler.start()
-    yield
-    scheduler.shutdown(wait=False)
+# @asynccontextmanager
+# async def lifespan(app: FastAPI):
+#     scheduler.add_job(
+#         cleanup_expired_cache,
+#         "interval",
+#         hours=6,
+#         id="cleanup_cache",
+#     )
+#     scheduler.start()
+#     yield
+#     scheduler.shutdown(wait=False)
 
 
 limiter = Limiter(key_func=get_remote_address)
-app = FastAPI(lifespan=lifespan)
+app = FastAPI()
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
@@ -81,6 +84,15 @@ app.add_middleware(
 @app.get("/")
 def root():
     return "Welcome to Repo Explainer!"
+
+async def fake_video_streamer():
+    for i in range(10):
+        await asyncio.sleep(2)
+        yield b"some fake video bytes"
+
+@app.get("/stream")
+async def main():
+    return StreamingResponse(fake_video_streamer())
 
 @app.get(
     "/{owner}/{repo}",
@@ -153,6 +165,145 @@ async def explain_repo(
         # Log and catch generic error for unexpected issues
         utils.logger.exception(f"Error in explain_repo(): {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An error occurred internally on the server"
         )
+
+
+def _sse_event(event_type: str, data: Any) -> str:
+    """Format one SSE event (event type + data line, double newline)."""
+    payload = json.dumps(data) if not isinstance(data, str) else data
+    return f"event: {event_type}\ndata: {payload}\n\n"
+
+
+async def _run_stream_pipeline(
+    owner: str,
+    repo: str,
+    ref: Optional[str],
+    instructions: Optional[str],
+    request: Request,
+    queue: asyncio.Queue,
+) -> None:
+    """Run get_repo_context + explain_repo and push status/result/error to queue."""
+    try:
+        async with httpx.AsyncClient() as client:
+            repo_info = RepoInfo(owner=owner, repo_name=repo)
+            github_token = request.headers.get("X-GitHub-Token") or env.GITHUB_TOKEN
+            if github_token == "":
+                github_token = None
+            github = GitHubTools(client, github_token=github_token, ref=ref)
+
+            def status_callback(stage: str) -> None:
+                queue.put_nowait(stage)
+
+            repo_content, success = await github.get_repo_context(repo_info, status_callback=status_callback)
+            if not success:
+                queue.put_nowait({"error": "Failed to fetch repository context"})
+                return
+
+            explanation, success = await ClaudeService.explain_repo(
+                repo_info, repo_content, instructions=instructions, status_callback=status_callback
+            )
+            if not success:
+                queue.put_nowait({"error": _user_facing_error(explanation or "Failed to generate explanation")})
+                return
+
+            queue.put_nowait({
+                "done": True,
+                "result": ModelResponse(
+                    explanation=explanation,
+                    repo=f"{owner}/{repo}",
+                    cache=False,
+                    timestamp=utils.date_now(),
+                ),
+            })
+    except Exception as e:
+        utils.logger.exception("Stream pipeline error: %s", e)
+        queue.put_nowait({"error": str(e)})
+
+
+async def _stream_generator(
+    owner: str,
+    repo: str,
+    ref: Optional[str],
+    instructions: Optional[str],
+    request: Request,
+) -> Any:
+    """Yield SSE events: status (stage), then result or error."""
+    yield _sse_event("status", {"stage": "validating"})
+    try:
+        async with httpx.AsyncClient() as client:
+            res = await client.get(f"https://github.com/{owner}/{repo}")
+            res.raise_for_status()
+    except httpx.HTTPStatusError as e:
+        status_code = e.response.status_code
+        error_messages = {
+            403: f"Repository '{owner}/{repo}' is private or access is forbidden.",
+            404: f"Repository '{owner}/{repo}' not found. Please check the owner and repository name.",
+            429: "Too many requests to GitHub. Please try again later.",
+        }
+        detail = error_messages.get(status_code, f"Error accessing repository (HTTP {status_code})")
+        yield _sse_event("error", {"detail": detail})
+        return
+    except Exception as e:
+        yield _sse_event("error", {"detail": "Could not validate repository."})
+        return
+
+    queue: asyncio.Queue = asyncio.Queue()
+    task = asyncio.create_task(
+        _run_stream_pipeline(owner, repo, ref, instructions, request, queue)
+    )
+
+    try:
+        while True:
+            try:
+                item = await asyncio.wait_for(queue.get(), timeout=300.0)
+            except asyncio.TimeoutError:
+                yield _sse_event("error", {"detail": "Request timed out."})
+                break
+
+            if isinstance(item, str):
+                yield _sse_event("status", {"stage": item})
+            elif isinstance(item, dict):
+                if item.get("error"):
+                    yield _sse_event("error", {"detail": item["error"]})
+                    break
+                if item.get("done") and "result" in item:
+                    result = item["result"]
+                    data = result.model_dump()
+                    data["timestamp"] = result.timestamp.isoformat()
+                    yield _sse_event("result", data)
+                    break
+    finally:
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
+
+
+@app.get(
+    "/{owner}/{repo}/stream",
+    responses={
+        403: {"description": "Repository is private or GitHub rate limit exceeded"},
+        404: {"description": "Repository not found"},
+        500: {"description": "Internal server error"},
+    },
+)
+@limiter.limit("20/day")
+async def explain_repo_stream(
+    request: Request,
+    owner: str,
+    repo: str,
+    ref: Optional[str] = None,
+    instructions: Optional[str] = Query(None),
+):
+    """SSE endpoint: streams status events then result or error."""
+    return StreamingResponse(
+        _stream_generator(owner, repo, ref, instructions, request),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-store",
+            "X-Accel-Buffering": "no",
+        },
+    )

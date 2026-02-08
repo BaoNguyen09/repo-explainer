@@ -1,5 +1,5 @@
 import asyncio
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 import httpx
 
 from backend.claude_service import ClaudeService
@@ -373,12 +373,15 @@ class GitHubTools:
         except Exception as e:
             raise GitHubApiError(message=f"An unexpected error occurred while fetching tree for {repo.owner}/{repo.repo_name}@{ref}: {str(e)}") from e
 
-    async def get_repo_context(self, repo: RepoInfo) -> tuple[str, bool]:
+    async def get_repo_context(
+        self, repo: RepoInfo, status_callback: Optional[Callable[[str], None]] = None
+    ) -> tuple[str, bool]:
         """
-        Fetch key files in the repo to get general context
+        Fetch key files in the repo to get general context.
 
         Args:
             repo: info related to the requested repo to fetch
+            status_callback: optional callback invoked with stage names for SSE (fetching_tree, exploring_files, fetching_files)
 
         Returns:
             A string of concatenated content of key files found in root directory
@@ -387,13 +390,15 @@ class GitHubTools:
         try:
             context_parts = []
             total_chars = 0
-            
+
             # Context #1: Repo structure
             tree = await self.fetch_directory_tree_with_depth(repo=repo, depth=self.TREE_DEPTH)
             if len(tree) > 10000:
                 tree = "(Tree content cropped to 10k characters)\n" + tree[:10000]
             context_parts.append(tree + "\n")
             total_chars += len(tree)
+            if status_callback:
+                status_callback("fetching_tree")
 
             # Context #2: File content (agentic: LLM suggests paths + IMPORTANT_FILES, fetch in parallel)
             result = await self.list_directory_files(repo, "")
@@ -402,12 +407,16 @@ class GitHubTools:
 
             files_at_root = set(result[0])
             root_important = [f for f in self.IMPORTANT_FILES if f in files_at_root]
+            if status_callback:
+                status_callback("exploring_files")
             llm_paths = await ClaudeService.get_files_to_explore(tree)
             all_paths = list(dict.fromkeys(root_important + llm_paths))[: self.MAX_FILES_TO_FETCH]
 
             if not all_paths:
                 return "No key documentation files found in root.", True
 
+            if status_callback:
+                status_callback("fetching_files")
             tasks = [self.get_file_contents(repo, p) for p in all_paths]
             results = await asyncio.gather(*tasks)
 

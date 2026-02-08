@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Callable, List, Optional
 
 import anthropic
 from backend import env, utils
@@ -53,15 +53,17 @@ class ClaudeService:
         repo: RepoInfo,
         repo_context: str,
         instructions: Optional[str] = None,
+        status_callback: Optional[Callable[[str], None]] = None,
     ) -> tuple[str, bool]:
         """
         Send repo context to Claude and get explanation.
-        
+
         Args:
             repo: info related to the requested repo to fetch
             repo_context: The formatted context from GitHubTools.get_repo_context()
             instructions: Optional user instructions/questions to tailor the explanation
-            
+            status_callback: optional callback for SSE (e.g. "generating_explanation")
+
         Returns:
             explanation: The generated explanation
             success: Boolean status
@@ -70,6 +72,8 @@ class ClaudeService:
         prompt = build_user_prompt(repo_name, repo_context, instructions)
 
         try:
+            if status_callback:
+                status_callback("generating_explanation")
             utils.logger.info(f"{cls.__name__}.explain_repo(): Set up Claude client")
             client = anthropic.AsyncAnthropic(api_key=env.ANTHROPIC_API_KEY)
 

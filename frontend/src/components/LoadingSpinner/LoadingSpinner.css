@@ -23,9 +23,27 @@
   100% { transform: rotate(360deg); }
 }
 
-.loading-container p {
+.loading-container p,
+.loading-container .loading-message {
   color: var(--color-text-muted);
   margin-top: 1rem;
+}
+
+.loading-steps {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0 0;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+.loading-step-done {
+  margin-top: 0.25rem;
+}
+
+.loading-step-done::before {
+  content: "✓ ";
+  color: var(--color-accent);
 }
 
 

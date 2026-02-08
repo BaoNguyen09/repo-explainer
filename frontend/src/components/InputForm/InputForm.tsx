@@ -22,14 +22,29 @@ function parsePathRepo(pathname: string): { owner: string; repo: string } | null
   return { owner, repo };
 }
 
+const STAGE_MESSAGES: Record<string, string> = {
+  validating: 'Validating repository...',
+  fetching_tree: 'Fetching directory structure...',
+  exploring_files: 'AI is exploring which files to read...',
+  fetching_files: 'Fetching file contents...',
+  generating_explanation: 'Generating explanation...',
+};
+
+function getMessageForStage(stage: string): string {
+  return STAGE_MESSAGES[stage] ?? stage;
+}
+
 export function InputForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [resultData, setResultData] = useState<FormResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [completedSteps, setCompletedSteps] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const instructionsRef = useRef<HTMLTextAreaElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const hasAutoSubmittedRef = useRef(false);
+  const gotResultRef = useRef(false);
 
   // When URL path is /owner/repo (e.g. from extension), prefill form and auto-submit once
   useEffect(() => {
@@ -50,54 +65,95 @@ export function InputForm() {
     formRef.current.requestSubmit();
   }, []);
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setIsLoading(true);
     setResultData(null);
     setError(null);
+    setStatusMessage(null);
+    setCompletedSteps([]);
+    gotResultRef.current = false;
 
-    try {
-      const formData = new FormData(e.currentTarget);
-      const query = formData.get("query") as string;
-      
-      if (!query || !query.trim()) {
-        throw new Error('Please enter a GitHub repository URL');
-      }
-
-      // Parse the URL to extract owner and repo
-      const parsed = parseGitHubUrl(query);
-      if (!parsed) {
-        throw new Error('Invalid GitHub URL format. Please use: https://github.com/owner/repo or owner/repo');
-      }
-
-      // Get optional instructions
-      const instructions = formData.get("instructions") as string;
-      const instructionsTrimmed = instructions?.trim() || "";
-      
-      // Build URL with optional instructions query parameter
-      let url = `${config.apiUrl}/${parsed.owner}/${parsed.repo}`;
-      if (instructionsTrimmed) {
-        url += `?instructions=${encodeURIComponent(instructionsTrimmed)}`;
-      }
-
-      console.log(`Fetching explanation for: ${parsed.owner}/${parsed.repo}`);
-      
-      const response = await fetch(url);
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ detail: 'Network response was not ok' }));
-        throw new Error(errorData.detail || `Error: ${response.status} ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      setResultData(data);
-
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An error occurred while fetching the explanation';
-      setError(errorMessage);
-    } finally {
+    const formData = new FormData(e.currentTarget);
+    const query = formData.get('query') as string;
+    if (!query || !query.trim()) {
+      setError('Please enter a GitHub repository URL');
       setIsLoading(false);
+      return;
     }
+
+    const parsed = parseGitHubUrl(query);
+    if (!parsed) {
+      setError('Invalid GitHub URL format. Please use: https://github.com/owner/repo or owner/repo');
+      setIsLoading(false);
+      return;
+    }
+
+    const instructions = formData.get('instructions') as string;
+    const instructionsTrimmed = instructions?.trim() || '';
+    let url = `${config.apiUrl}/${parsed.owner}/${parsed.repo}/stream`;
+    if (instructionsTrimmed) {
+      url += `?instructions=${encodeURIComponent(instructionsTrimmed)}`;
+    }
+
+    const es = new EventSource(url);
+
+    es.addEventListener('status', (event: MessageEvent) => {
+      try {
+        const data = JSON.parse(event.data as string) as { stage?: string };
+        const stage = data?.stage;
+        if (stage) {
+          const msg = getMessageForStage(stage);
+          setCompletedSteps((prev) =>
+            prev[prev.length - 1] === msg ? prev : [...prev, msg]
+          );
+          setStatusMessage(msg);
+        }
+      } catch {
+        // ignore parse errors
+      }
+    });
+
+    es.addEventListener('result', (event: MessageEvent) => {
+      gotResultRef.current = true;
+      try {
+        const data = JSON.parse(event.data as string) as FormResult;
+        setResultData(data);
+      } catch {
+        setError('Invalid response from server');
+      }
+      es.close();
+      setIsLoading(false);
+      setStatusMessage(null);
+      setCompletedSteps([]);
+    });
+
+    es.addEventListener('error', (event: MessageEvent) => {
+      try {
+        if (event.data) {
+          const data = JSON.parse(event.data as string) as { detail?: string };
+          if (data?.detail) {
+            setError(data.detail);
+          }
+        }
+      } catch {
+        setError('Connection lost or server error');
+      }
+      es.close();
+      setIsLoading(false);
+      setStatusMessage(null);
+      setCompletedSteps([]);
+    });
+
+    es.onerror = () => {
+      if (!gotResultRef.current) {
+        setError((prev) => prev || 'Connection lost or server error');
+      }
+      es.close();
+      setIsLoading(false);
+      setStatusMessage(null);
+      setCompletedSteps([]);
+    };
   }
 
   const handleTryExample = (repo: string) => {
@@ -199,7 +255,9 @@ export function InputForm() {
         </div>
       )}
 
-      {isLoading && <LoadingSpinner />}
+      {isLoading && (
+        <LoadingSpinner message={statusMessage} completedSteps={completedSteps} />
+      )}
       
       {!isLoading && resultData && <ResultDisplay data={resultData} />}
     </div>

@@ -90,14 +90,21 @@ IMPORTANT FORMATTING RULES:
 2. Use tree characters (├──, └──, │) to create a visual tree structure.
 3. For visual diagrams showing component connections, architecture flows, or data flow, 
    use Mermaid.js syntax in a code block with language "mermaid".
-   Example:
-   ```mermaid
-   graph TD
-       A[Component A] --> B[Component B]
-       B --> C[Component C]
-   ```
 4. Use mermaid ONLY for visual flow/connection diagrams, NEVER for directory structures.
-5. The repository structure section MUST appear AFTER any Mermaid diagrams."""
+5. The repository structure section MUST appear AFTER any Mermaid diagrams.
+
+MERMAID SYNTAX RULES (follow strictly to avoid parse errors):
+- Use simple node IDs (A, B, C, N1, N2). Put display text in the label only.
+- Any label containing parentheses, brackets [], slashes /, spaces, or colons MUST be wrapped in double quotes inside the brackets: A["Frontend (React + Vite)"], B["GET /owner/repo/stream"].
+- Write each statement on ONE line. Do not split a node or arrow across multiple lines.
+- For arrow labels use quotes: A -->|"label text"| B. No spaces in the label key; use one word or quoted text.
+- Do not use raw [ or ] inside a label unless the entire label is already in double quotes (e.g. A["Path [optional]"] is OK).
+- Example of valid diagram:
+  ```mermaid
+  graph TD
+      A["Frontend"] --> B["Backend"]
+      B --> C["GitHub API"]
+  ```"""
 
 USER_PROMPT_TEMPLATE = """{user_instructions_section}Explain this repository: {repo_name}
 

@@ -8,6 +8,7 @@ An AI app that explains GitHub repositories through agentic file exploration.
 - **AI-powered summaries** -- Paste a GitHub repo URL and get an overview, architecture diagram, directory tree, and tech stack.
 - **Ask what you need** -- Add instructions (e.g. "Focus on API design") and the explanation is tailored to your question.
 - **Smart file discovery** -- The AI chooses which files to read from the repo tree; we fetch them in parallel for fast results.
+- **Live status updates** -- The UI streams progress (validating, fetching tree, AI exploring files, fetching contents, generating explanation) so you see what’s happening at each step.
 - **Safe for large repos** -- Context limits and clear errors (e.g. "repository too large", "rate limit") instead of cryptic failures.
 - **Polished UI** -- Dark/light theme, example repos and prompts, compact layout.
 
@@ -86,6 +87,11 @@ bun install
 - **Preview production build:** `npm run preview` or `bun run preview`.
 
 Run the backend API first so the frontend can talk to it; use the same `VITE_BACKEND_API_URL` as in `frontend/.env.development`.
+
+### API
+
+- **`GET /{owner}/{repo}/stream?instructions=...`** -- SSE (Server-Sent Events) stream used by the frontend: sends status events (validating, fetching_tree, exploring_files, fetching_files, generating_explanation) then a single `result` or `error` event with the explanation or message.
+- **`GET /{owner}/{repo}?instructions=...`** -- Optional one-shot JSON response (same payload as the final `result` event). Useful for scripts or clients that don’t need streaming.
 
 ## One-command local dev (Docker)
 

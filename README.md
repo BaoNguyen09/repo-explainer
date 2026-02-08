@@ -2,13 +2,20 @@
 <img width="auto" height="400" alt="image" src="https://github.com/user-attachments/assets/c8d50046-c94c-41c4-a61c-d6b6b4c4656e" />
 
 
-An app that explains GitHub repositories using AI quickly.
+An AI app that explains GitHub repositories through agentic file exploration.
 
-**Features:**
-- Fetches repo structure and key files (README, package.json, etc.), sends context to Claude, and returns a structured explanation (overview, architecture diagram, directory tree, tech stack).
-- **Optional user instructions:** Add questions or focus (e.g. "Focus on API design") via the instructions field; the explanation is tailored within the same structure (no extra section).
-- Context is capped (per-file and total) so large repos don’t exceed model limits; users see clear errors (e.g. “repository too large”, “rate limit”) instead of a bare 500.
-- Frontend: light/dark theme toggle, example repo buttons, example instruction buttons, compact default layout.
+## Features
+- **AI-powered summaries** — Paste a GitHub repo URL and get an overview, architecture diagram, directory tree, and tech stack.
+- **Ask what you need** — Add instructions (e.g. "Focus on API design") and the explanation is tailored to your question.
+- **Smart file discovery** — The AI chooses which files to read from the repo tree; we fetch them in parallel for fast results.
+- **Safe for large repos** — Context limits and clear errors (e.g. "repository too large", "rate limit") instead of cryptic failures.
+- **Polished UI** — Dark/light theme, example repos and prompts, compact layout.
+
+---
+
+**Like this project?** [Star the repo](https://github.com/baonguyen09/repo-explainer) on GitHub — it helps others find it. Want to improve it? Contributions are welcome! See [Contributing](#contributing) below.
+
+---
 
 ## Installation
 
@@ -125,3 +132,26 @@ Migrations live in `backend/alembic/`. Run from repo root (where `alembic.ini` l
 - `alembic history -v` — show history
 
 Set `DATABASE_URL` in `.env` before running. See [ENV_SETUP.md](ENV_SETUP.md).
+
+## Contributing
+
+We welcome contributions — whether it’s a bug fix, a new feature, or better docs. Here’s how to get started.
+
+### How to contribute
+
+1. **Star the repo** — If you find this useful, starring helps others discover it.
+2. **Open an issue** — Report bugs or suggest ideas in [GitHub Issues](https://github.com/baonguyen09/repo-explainer/issues). Check existing issues first to avoid duplicates.
+3. **Submit a pull request** — For code or doc changes:
+   - Fork the repo and create a branch from `main` (e.g. `fix/typo-readme` or `feat/your-feature`).
+   - Make your changes. Keep commits focused and messages clear.
+   - Run tests and linting (see [Development](#development)).
+   - Open a PR against `main` with a short description of what changed and why. Link any related issue.
+
+### Guidelines
+
+- **Code style:** Backend — follow [ruff](https://docs.astral.sh/ruff/) and [Black](https://black.readthedocs.io/) (config in `pyproject.toml`). Frontend — use the existing ESLint config.
+- **Tests:** Add or update tests for behavior changes; run `pytest backend/tests/` before submitting.
+- **Docs:** Update the README or ENV_SETUP.md if you change setup, env vars, or usage.
+- **Scope:** Keep PRs reasonably scoped; for large features, open an issue first to discuss.
+
+Thank you for contributing!

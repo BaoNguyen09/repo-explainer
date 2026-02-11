@@ -170,12 +170,21 @@ export function InputForm() {
     }
   };
 
+  const handleOpenRepoInNewTab = () => {
+    const value = inputRef.current?.value?.trim();
+    if (!value) return;
+    const parsed = parseGitHubUrl(value);
+    if (parsed) {
+      window.open(`https://github.com/${parsed.owner}/${parsed.repo}`, '_blank', 'noopener,noreferrer');
+    }
+  };
+
   const exampleRepos = [
     { url: 'https://github.com/baonguyen09/repo-explainer', label: 'RepoExplainer'},
     { url: 'https://github.com/fastapi/fastapi', label: 'FastAPI' },
-    { url: 'https://github.com/streamlit/streamlit', label: 'Streamlit' },
-    { url: 'https://github.com/tom-doerr/api-analytics', label: 'api-analytics' },
-    { url: 'https://github.com/monkeytypegame/monkeytype', label: 'Monkeytype' }
+    { url: 'https://github.com/openclaw/openclaw', label: 'OpenClaw' },
+    { url: 'https://github.com/redis/redis', label: 'Redis' },
+    { url: 'https://github.com/ollama/ollama', label: 'Ollama' }
   ];
 
   const exampleInstructions = [
@@ -190,13 +199,29 @@ export function InputForm() {
     <div className="form-container">
       <form ref={formRef} onSubmit={handleSubmit}>
         <div className="input-wrapper">
-          <input 
-            ref={inputRef}
-            name='query' 
-            placeholder='https://github.com/username/repo' 
-            disabled={isLoading}
-            required
-          />
+          <div className="url-input-wrapper">
+            <input 
+              ref={inputRef}
+              name='query' 
+              placeholder='https://github.com/username/repo' 
+              disabled={isLoading}
+              required
+            />
+            <button
+              type="button"
+              className="open-repo-btn"
+              onClick={handleOpenRepoInNewTab}
+              disabled={isLoading}
+              title="Open repo on GitHub"
+              aria-label="Open repo on GitHub"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                <polyline points="15 3 21 3 21 9" />
+                <line x1="10" y1="14" x2="21" y2="3" />
+              </svg>
+            </button>
+          </div>
           <button 
             type="submit"
             className="generate-btn"

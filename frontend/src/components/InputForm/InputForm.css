@@ -36,6 +36,8 @@
   /* Same height as URL input: one line (padding + line-height * font-size) */
   height: calc(1.5 * 1.125rem + 2 * 1.25rem);
   min-height: calc(1.5 * 1.125rem + 2 * 1.25rem);
+  max-height: 12rem;
+  overflow-y: auto;
 }
 
 .instructions-input:focus {
@@ -59,9 +61,47 @@
   margin: 0 auto;
 }
 
-.input-wrapper input {
+.url-input-wrapper {
+  position: relative;
   flex: 2;
   min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+.url-input-wrapper input {
+  flex: 1;
+  min-width: 0;
+  padding-right: 2.75rem;
+}
+
+.open-repo-btn {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 6px;
+  background: var(--color-input-bg);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: color 0.2s, background-color 0.2s;
+}
+
+.open-repo-btn:hover:not(:disabled) {
+  color: var(--color-accent);
+  background-color: var(--color-bg-elevated);
+}
+
+.open-repo-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .form-container input {
@@ -210,7 +250,11 @@
     max-width: 100%;
   }
 
-  .input-wrapper input {
+  .url-input-wrapper {
+    width: 100%;
+  }
+
+  .url-input-wrapper input {
     flex: none;
     width: 100%;
   }

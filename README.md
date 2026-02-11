@@ -1,5 +1,7 @@
 # RepoExplainer
-<img width="auto" height="400" alt="image" src="https://github.com/user-attachments/assets/c8d50046-c94c-41c4-a61c-d6b6b4c4656e" />
+
+https://github.com/user-attachments/assets/424dff27-5558-4f31-a522-0b45475eb597
+
 
 
 An AI app that explains GitHub repositories through agentic file exploration.

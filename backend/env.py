@@ -22,6 +22,10 @@ MODEL: str = os.environ.get("MODEL", "claude-haiku-4-5-20251001")
 # Default: localhost for development
 CORS_ORIGINS: str = os.environ.get("CORS_ORIGINS", "http://localhost:5173")
 
+# PostHog analytics
+POSTHOG_API_KEY: str = os.environ.get("POSTHOG_API_KEY", "")
+POSTHOG_HOST: str = os.environ.get("POSTHOG_HOST", "https://us.i.posthog.com")
+
 # Database-related
 DATABASE_URL: str = os.environ.get("DATABASE_URL", "postgresql+psycopg2://repoexplainer:repoexplainer@localhost:5432/repoexplainer")
 CACHE_TTL_DAYS: int = int(os.environ.get("CACHE_TTL_DAYS", "7"))

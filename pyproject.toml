@@ -22,6 +22,7 @@ dependencies = [
     "psycopg2-binary>=2.9.0",
     "alembic>=1.13.0",
     "apscheduler>=3.10.0",
+    "posthog>=3.0.0",
 ]
 
 [project.optional-dependencies]

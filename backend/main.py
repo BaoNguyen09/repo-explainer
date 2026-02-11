@@ -12,6 +12,8 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
+from posthog import Posthog
+
 from backend import GitHubTools
 from backend import ai_service
 from backend import utils, env
@@ -19,6 +21,31 @@ from backend.database import RepoExplanation, SessionLocal
 from backend.schema import ModelResponse, RepoInfo
 
 # scheduler = AsyncIOScheduler()
+
+# ── PostHog analytics (no-op when API key is absent) ──
+posthog_client: Posthog | None = None
+if env.POSTHOG_API_KEY:
+    posthog_client = Posthog(env.POSTHOG_API_KEY, host=env.POSTHOG_HOST)
+
+
+def track_event(
+    request: Request, owner: str, repo: str, endpoint: str, status: str
+) -> None:
+    """Record a repo_explained event in PostHog (no-op if client is disabled)."""
+    if not posthog_client:
+        return
+    client_ip = get_remote_address(request)
+    posthog_client.capture(
+        distinct_id=client_ip,
+        event="repo_explained",
+        properties={
+            "owner": owner,
+            "repo": repo,
+            "repo_full": f"{owner}/{repo}",
+            "endpoint": endpoint,
+            "status": status,
+        },
+    )
 
 
 def _user_facing_error(msg: str) -> str:
@@ -81,6 +108,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.middleware("http")
+async def posthog_flush_middleware(request: Request, call_next):
+    """Flush PostHog events after each request so nothing is lost on shutdown."""
+    response = await call_next(request)
+    if posthog_client:
+        posthog_client.flush()
+    return response
+
+
 @app.get("/")
 def root():
     return "Welcome to Repo Explainer!"
@@ -131,6 +168,7 @@ async def explain_repo(
                     detail=_user_facing_error(explanation or "Failed to generate explanation"),
                 )
 
+            track_event(request, owner, repo, "explain", "success")
             return ModelResponse(
                 explanation=explanation,
                 repo=f"{owner}/{repo}",
@@ -152,6 +190,7 @@ async def explain_repo(
             f"Error accessing repository '{owner}/{repo}' (HTTP {status_code})"
         )
         
+        track_event(request, owner, repo, "explain", "error")
         raise HTTPException(
             status_code=status_code if status_code < 500 else 500,
             detail=detail
@@ -159,6 +198,7 @@ async def explain_repo(
     except Exception as e:
         # Log and catch generic error for unexpected issues
         utils.logger.exception(f"Error in explain_repo(): {str(e)}")
+        track_event(request, owner, repo, "explain", "error")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An error occurred internally on the server"
@@ -206,6 +246,7 @@ async def _run_stream_pipeline(
                 queue.put_nowait({"error": _user_facing_error(explanation or "Failed to generate explanation")})
                 return
 
+            track_event(request, owner, repo, "stream", "success")
             queue.put_nowait({
                 "done": True,
                 "result": ModelResponse(
@@ -217,6 +258,7 @@ async def _run_stream_pipeline(
             })
     except Exception as e:
         utils.logger.exception("Stream pipeline error: %s", e)
+        track_event(request, owner, repo, "stream", "error")
         queue.put_nowait({"error": str(e)})
 
 

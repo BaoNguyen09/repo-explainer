@@ -2,7 +2,7 @@ import asyncio
 from typing import Any, Callable, Dict, List, Optional
 import httpx
 
-from backend.claude_service import ClaudeService
+from backend import ai_service
 from backend.schema import GitHubApiError, RepoInfo
 from backend import utils
 
@@ -35,7 +35,7 @@ class GitHubTools:
     #     '*.min.js', '*.min.css', '.DS_Store', '.lock'
     # ]
 
-    TREE_DEPTH = 3  # Just top-level structures
+    TREE_DEPTH = 5  # Just top-level structures
     MAX_TOTAL_CHARS = 100_000  # ~25k tokens or 100kb
     MAX_FILE_CHARS = 30_000   # Cap per-file so one huge file (e.g. lockfile) doesn't dominate
     MAX_FILES_TO_FETCH = 25   # Cap merged list (IMPORTANT_FILES + LLM-suggested) for rate limits
@@ -392,13 +392,13 @@ class GitHubTools:
             total_chars = 0
 
             # Context #1: Repo structure
+            if status_callback:
+                status_callback("fetching_tree")
             tree = await self.fetch_directory_tree_with_depth(repo=repo, depth=self.TREE_DEPTH)
             if len(tree) > 10000:
                 tree = "(Tree content cropped to 10k characters)\n" + tree[:10000]
             context_parts.append(tree + "\n")
             total_chars += len(tree)
-            if status_callback:
-                status_callback("fetching_tree")
 
             # Context #2: File content (agentic: LLM suggests paths + IMPORTANT_FILES, fetch in parallel)
             result = await self.list_directory_files(repo, "")
@@ -407,9 +407,12 @@ class GitHubTools:
 
             files_at_root = set(result[0])
             root_important = [f for f in self.IMPORTANT_FILES if f in files_at_root]
+
             if status_callback:
                 status_callback("exploring_files")
-            llm_paths = await ClaudeService.get_files_to_explore(tree)
+            llm_paths = await ai_service.get_files_to_explore(
+                tree, repo_prefix=f"{repo.owner}/{repo.repo_name}"
+            )
             all_paths = list(dict.fromkeys(root_important + llm_paths))[: self.MAX_FILES_TO_FETCH]
 
             if not all_paths:
@@ -445,7 +448,7 @@ async def main():
         repo = RepoInfo(owner="baonguyen09", repo_name="github-second-brain")
         content, success = await github.get_repo_context(repo)
         if success:
-            response = await ClaudeService.explain_repo(repo, content)
+            response = await ai_service.explain_repo(repo, content)
             print(response[0])
         else:
             print(f"Failed: {content}")

@@ -7,27 +7,33 @@ from typing import List, Optional
 
 FILES_TO_EXPLORE_SYSTEM = """You are a principal engineer. Given a repository's directory tree, you must choose which files are most valuable to read to understand the codebase (purpose, architecture, key config).
 
-Rules:
-- Return ONLY file paths, not directory, one per line. No explanations, no bullets, no markdown.
-- Paths must be relative to the repository root and must appear in the tree (do not invent paths).
+CRITICAL PATH RULES:
+- The tree below has a root label like `└── owner/repo/`. That label is for display ONLY and is NOT part of any file path. Paths start from the FIRST LEVEL INSIDE that root.
+- Example: if the tree shows:
+    └── fastapi/fastapi/
+        ├── README.md
+        ├── fastapi/
+        │   ├── applications.py
+  then the correct paths are `README.md` and `fastapi/applications.py`.
+  WRONG: `fastapi/fastapi/README.md` or `fastapi/fastapi/fastapi/applications.py`.
+- Return ONLY file paths (not directories), one per line. No explanations, no bullets, no markdown.
 - Prioritize: README/docs, config (package.json, requirements.txt, etc.), main entry points, and key source files. Prefer a small set (up to 15 paths) so the list stays focused.
 
 Output format: plain text, exactly one path per line. Example:
 
 README.md
 package.json
-backend/main.py
-backend/requirements.txt
-frontend/src/App.tsx
+src/main.py
+src/utils.py
 """
 
 FILES_TO_EXPLORE_USER_TEMPLATE = """Directory tree of the repository:
+List the file paths to read (one per line, relative to repo root). No other text.
 
 <tree>
 {tree}
 </tree>
-
-List the file paths to read (one per line, relative to repo root). No other text."""
+"""
 
 
 def build_files_to_explore_user(tree_str: str) -> str:
@@ -56,9 +62,11 @@ def parse_paths_from_response(text: str) -> List[str]:
             out.append(line)
     return out
 
-SYSTEM_PROMPT = """You are an staff software engineer. Explain GitHub repositories 
-clearly and concisely for curious developers who want to understand the codebase.
-Produce answer in Markdown format.
+SYSTEM_PROMPT = """You are a staff software engineer. Explain GitHub repositories 
+clearly and thoroughly for curious developers who want to deeply understand the codebase.
+Produce the answer in Markdown format.
+
+Aim for a detailed explanation (roughly 1500 words when the repository is non-trivial), with concrete examples and specifics from the provided context. Do not be overly terse unless the repository itself is extremely small.
 
 MANDATORY REQUIREMENTS:
 1. You MUST ALWAYS include the repository directory structure in tree format.
@@ -75,7 +83,7 @@ Include a section like this AFTER the diagram section:
 repo-name/
 ├── backend/
 │   ├── main.py
-│   ├── claude_service.py
+│   ├── ai_service.py
 │   └── github_tools.py
 ├── frontend/
 │   ├── src/
@@ -108,28 +116,29 @@ MERMAID SYNTAX RULES (follow strictly to avoid parse errors):
 
 USER_PROMPT_TEMPLATE = """{user_instructions_section}Explain this repository: {repo_name}
 
-REQUIRED OUTPUT FORMAT: Use exactly these 4 sections. When the user gave a request above, tailor the content inside these sections to answer it—do not add a fifth section or a separate "user request" block at the end.
-1. **What is this repo?**
-   - Brief overview of the repository's purpose and functionality
+You MUST structure the answer into exactly these 4 Markdown sections using level-2 headings (##):
 
-2. **How all main components connect**
-   - Explain the architecture and how components interact
-   - Use Mermaid diagrams for visual flow if helpful
-   - Place the Mermaid diagram in this section
+## 1. What is this repo?
+- Brief overview of the repository's purpose and functionality.
 
-3. **Repository Structure** (MANDATORY - MUST come after the diagram)
-   - Display the directory tree structure in a shell code block
-   - Use tree characters (├──, └──, │) to show hierarchy
-   - Include main directories and important files (2-3 levels deep)
-   - Format: ```shell followed by the tree structure
+## 2. How all main components connect
+- Explain the architecture and how components interact.
+- Use Mermaid diagrams for visual flow if helpful.
+- Place any Mermaid diagram in this section.
 
-4. **Other important information**
-   - Tech stack, key features, setup instructions, or any other relevant details
+## 3. Repository Structure  (MUST come after the diagram)
+- Display the directory tree structure in a shell code block.
+- Use tree characters (├──, └──, │) to show hierarchy.
+- Include main directories and important files (2-3 levels deep).
+- Format: ```shell followed by the tree structure.
 
+## 4. Other important information
+- Tech stack, key features, setup instructions, or any other relevant details.
+
+Remember: The Repository Structure section MUST be included AFTER any Mermaid diagrams and formatted as a shell code block with tree characters.
 Repository context:
 {repo_context}
-
-Remember: The Repository Structure section MUST be included AFTER any Mermaid diagrams and formatted as a shell code block with tree characters."""
+"""
 
 
 def build_user_prompt(repo_name: str, repo_context: str, user_instructions: Optional[str] = None) -> str:

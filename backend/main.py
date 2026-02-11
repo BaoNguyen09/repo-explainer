@@ -4,7 +4,6 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import httpx
 from fastapi import FastAPI, HTTPException, Request, Query, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,12 +12,13 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
-from backend import ClaudeService, GitHubTools
+from backend import GitHubTools
+from backend import ai_service
 from backend import utils, env
 from backend.database import RepoExplanation, SessionLocal
 from backend.schema import ModelResponse, RepoInfo
 
-scheduler = AsyncIOScheduler()
+# scheduler = AsyncIOScheduler()
 
 
 def _user_facing_error(msg: str) -> str:
@@ -119,8 +119,12 @@ async def explain_repo(
             if not success:
                 raise HTTPException(status_code=500, detail="Failed to fetch repository context")
 
-            # Generate explanation with Claude
-            explanation, success = await ClaudeService.explain_repo(repo_info, repo_content, instructions=instructions)
+            # Generate explanation with configured AI provider
+            explanation, success = await ai_service.explain_repo(
+                repo_info,
+                repo_content,
+                instructions=instructions,
+            )
             if not success:
                 raise HTTPException(
                     status_code=500,
@@ -192,8 +196,11 @@ async def _run_stream_pipeline(
                 queue.put_nowait({"error": "Failed to fetch repository context"})
                 return
 
-            explanation, success = await ClaudeService.explain_repo(
-                repo_info, repo_content, instructions=instructions, status_callback=status_callback
+            explanation, success = await ai_service.explain_repo(
+                repo_info,
+                repo_content,
+                instructions=instructions,
+                status_callback=status_callback,
             )
             if not success:
                 queue.put_nowait({"error": _user_facing_error(explanation or "Failed to generate explanation")})

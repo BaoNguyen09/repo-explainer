@@ -6,6 +6,7 @@ An AI app that explains GitHub repositories through agentic file exploration.
 
 ## Features
 - **AI-powered summaries** -- Paste a GitHub repo URL and get an overview, architecture diagram, directory tree, and tech stack.
+- **Multiple AI providers** -- Switch between Claude (Anthropic) and Gemini (Google) with a single env var (`AI_PROVIDER`). Easy to add more providers.
 - **Ask what you need** -- Add instructions (e.g. "Focus on API design") and the explanation is tailored to your question.
 - **Smart file discovery** -- The AI chooses which files to read from the repo tree; we fetch them in parallel for fast results.
 - **Live status updates** -- The UI streams progress (validating, fetching tree, AI exploring files, fetching contents, generating explanation) so you see what’s happening at each step.
@@ -47,7 +48,7 @@ source .venv/bin/activate
 uv pip install -e .
 ```
 
-3. Copy env: create a `.env` at the project root (or in `backend/`) and set variables. See [backend/.env.example](backend/.env.example) and [ENV_SETUP.md](ENV_SETUP.md) for `DATABASE_URL`, `ANTHROPIC_API_KEY`, `GITHUB_TOKEN`, `CORS_ORIGINS`, etc.
+3. Copy env: create a `.env` at the project root (or in `backend/`) and set variables. See [backend/.env.example](backend/.env.example) and `ENV_SETUP.md` (if present) for `DATABASE_URL`, `AI_PROVIDER`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `GITHUB_TOKEN`, `CORS_ORIGINS`, etc.
 
 ### Frontend
 
@@ -98,7 +99,8 @@ Run the backend API first so the frontend can talk to it; use the same `VITE_BAC
 Run backend, frontend, and Postgres with a single command (from repo root):
 
 ```bash
-# Create .env at repo root (same folder as docker-compose.yml) with ANTHROPIC_API_KEY=... and optionally GITHUB_TOKEN.
+# Create .env at repo root (same folder as docker-compose.yml) with AI_PROVIDER=claude or gemini,
+# the corresponding ANTHROPIC_API_KEY or GEMINI_API_KEY, and optionally GITHUB_TOKEN.
 # Copy from backend/.env.example, then add your keys. Docker Compose needs this file to exist.
 docker compose up --build
 ```
@@ -114,18 +116,31 @@ The backend can run in a container for deployment on any cloud (Render, Fly.io, 
 docker build -t repo-explainer .
 ```
 
-**Run locally:**
+**Run locally (Claude):**
 ```bash
 docker run -p 8000:8000 \
   -e DATABASE_URL="postgresql+psycopg2://user:pass@host:5432/db" \
-  -e ANTHROPIC_API_KEY="your-key" \
+  -e AI_PROVIDER="claude" \
+  -e ANTHROPIC_API_KEY="your-claude-key" \
+  -e CORS_ORIGINS="http://localhost:5173" \
+  repo-explainer
+```
+
+**Run locally (Gemini):**
+```bash
+docker run -p 8000:8000 \
+  -e DATABASE_URL="postgresql+psycopg2://user:pass@host:5432/db" \
+  -e AI_PROVIDER="gemini" \
+  -e GEMINI_API_KEY="your-gemini-key" \
+  -e MODEL="gemini-2.0-flash" \
   -e CORS_ORIGINS="http://localhost:5173" \
   repo-explainer
 ```
 
 - The image uses `PORT` (default 8000); set `-e PORT=8000` or let your platform set it.
+- `MODEL` overrides the default model for the selected provider (e.g. `claude-haiku-4-5-20251001`, `gemini-2.0-flash`, `gemini-3-pro-preview`).
 - Run migrations before or after start (e.g. a separate job or init container): `alembic upgrade head` with the same `DATABASE_URL`.
-- See [backend/.env.example](backend/.env.example) and [ENV_SETUP.md](ENV_SETUP.md) for all env vars.
+- See [backend/.env.example](backend/.env.example) for all env vars.
 
 ## Alembic migrations
 

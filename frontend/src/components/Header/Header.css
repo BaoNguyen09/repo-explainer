@@ -71,6 +71,20 @@
   object-fit: contain;
 }
 
+@media (max-width: 640px) {
+  .header-content {
+    padding: 1rem 1rem;
+  }
+
+  .header-ph-badge {
+    display: none;
+  }
+
+  .header-nav {
+    gap: 1rem;
+  }
+}
+
 .theme-toggle {
   display: inline-flex;
   align-items: center;

@@ -58,6 +58,19 @@
   gap: 1.5rem;
 }
 
+.header-ph-badge {
+  display: inline-block;
+  line-height: 0;
+}
+
+.header-ph-badge img {
+  display: block;
+  height: 40px;
+  width: auto;
+  max-width: 185px;
+  object-fit: contain;
+}
+
 .theme-toggle {
   display: inline-flex;
   align-items: center;

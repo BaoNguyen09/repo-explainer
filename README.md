@@ -1,8 +1,8 @@
 # RepoExplainer
 
-https://github.com/user-attachments/assets/424dff27-5558-4f31-a522-0b45475eb597
-
-
+<p align="center">
+   <video src="https://github.com/user-attachments/assets/424dff27-5558-4f31-a522-0b45475eb597">
+</p>
 
 An AI app that explains GitHub repositories through agentic file exploration.
 

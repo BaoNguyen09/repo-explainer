@@ -2,6 +2,7 @@ from typing import Callable, List, Optional, Tuple
 
 from backend import env, utils
 from backend.ai.providers.base import LLMProvider
+from backend.ai.retry import with_ai_retry
 from backend.ai.providers.claude import ClaudeProvider
 from backend.ai.providers.gemini import GeminiProvider
 from backend.prompts import (
@@ -86,7 +87,10 @@ async def get_files_to_explore(tree_str: str, repo_prefix: str = "") -> List[str
             env.AI_PROVIDER,
         )
         provider = _get_provider()
-        response = await provider.call_llm(FILES_TO_EXPLORE_SYSTEM, user_content)
+        response = await with_ai_retry(
+            "get_files_to_explore",
+            lambda: provider.call_llm(FILES_TO_EXPLORE_SYSTEM, user_content),
+        )
         raw_paths = parse_paths_from_response(response)
 
         if not raw_paths:
@@ -140,7 +144,10 @@ async def explain_repo(
         utils.logger.info(
             "ai_service.explain_repo(): Calling provider %s", env.AI_PROVIDER
         )
-        text = await provider.call_llm(SYSTEM_PROMPT, prompt, max_tokens=10_000)
+        text = await with_ai_retry(
+            "explain_repo",
+            lambda: provider.call_llm(SYSTEM_PROMPT, prompt, max_tokens=10_000),
+        )
         return text, True
     except Exception as e:
         utils.logger.exception("ai_service.explain_repo(): %s", e)

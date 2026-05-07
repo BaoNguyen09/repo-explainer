@@ -6,14 +6,17 @@ import './ResultDisplay.css';
 
 interface ResultDisplayProps {
   data: FormResult | null;
+  embedded?: boolean;
 }
 
-export function ResultDisplay({ data }: ResultDisplayProps) {
+export function ResultDisplay({ data, embedded = false }: ResultDisplayProps) {
   const [copied, setCopied] = useState(false);
 
   if (!data) {
     return null;
   }
+
+  const [owner, repo] = data.repo.split('/');
 
   const handleCopyAll = async () => {
     try {
@@ -46,7 +49,7 @@ export function ResultDisplay({ data }: ResultDisplayProps) {
   };
   
   return (
-    <div className="result-container">
+    <div className={`result-container${embedded ? ' result-container-embedded' : ''}`}>
       <div className="result-header">
         <h3>Repository Explanation</h3>
         <div className="result-actions">
@@ -76,10 +79,9 @@ export function ResultDisplay({ data }: ResultDisplayProps) {
       </div>
       <div className="explanation">
         <div className="explanation-scroll">
-          <MarkdownRenderer content={data.explanation} />
+          <MarkdownRenderer content={data.explanation} owner={owner} repo={repo} branch={data.default_branch} />
         </div>
       </div>
     </div>
   );
 }
-

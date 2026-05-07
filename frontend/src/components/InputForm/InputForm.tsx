@@ -2,8 +2,9 @@ import { useState, useRef, useEffect } from 'react';
 import { parseGitHubUrl } from '../../utils/parseGitHubUrl';
 import type { FormResult } from '../../types';
 import { LoadingSpinner } from '../LoadingSpinner';
-import { ResultDisplay } from '../ResultDisplay';
+import { RepoWorkspace } from '../RepoWorkspace';
 import { config } from '../../config/api';
+import { loadStoredRepoState, saveRepoOverview } from '../../utils/repoStorage';
 import './InputForm.css';
 
 /**
@@ -37,14 +38,17 @@ function getMessageForStage(stage: string): string {
 export function InputForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [resultData, setResultData] = useState<FormResult | null>(null);
+  const [isStoredOverview, setIsStoredOverview] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [completedSteps, setCompletedSteps] = useState<string[]>([]);
+  const [parsedRepo, setParsedRepo] = useState<{ owner: string; repo: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const instructionsRef = useRef<HTMLTextAreaElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const hasAutoSubmittedRef = useRef(false);
   const gotResultRef = useRef(false);
+  const forceRegenerateRef = useRef(false);
 
   // When URL path is /owner/repo (e.g. from extension), prefill form and auto-submit once
   useEffect(() => {
@@ -55,6 +59,7 @@ export function InputForm() {
 
     hasAutoSubmittedRef.current = true;
     inputRef.current.value = `https://github.com/${parsed.owner}/${parsed.repo}`;
+    setParsedRepo(parsed);
 
     const params = new URLSearchParams(search);
     const instructions = params.get('instructions');
@@ -62,13 +67,26 @@ export function InputForm() {
       instructionsRef.current.value = instructions;
     }
 
+    if (!instructions) {
+      const stored = loadStoredRepoState(parsed.owner, parsed.repo);
+      if (stored) {
+        setResultData({
+          explanation: stored.explanation,
+          repo: stored.repo,
+          timestamp: stored.updatedAt,
+          cache: true,
+          default_branch: stored.defaultBranch,
+        });
+        setIsStoredOverview(true);
+        return;
+      }
+    }
+
     formRef.current.requestSubmit();
   }, []);
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setIsLoading(true);
-    setResultData(null);
     setError(null);
     setStatusMessage(null);
     setCompletedSteps([]);
@@ -89,12 +107,35 @@ export function InputForm() {
       return;
     }
 
+    setParsedRepo({ owner: parsed.owner, repo: parsed.repo });
+
     const instructions = formData.get('instructions') as string;
     const instructionsTrimmed = instructions?.trim() || '';
+
+    if (!instructionsTrimmed && !forceRegenerateRef.current) {
+      const stored = loadStoredRepoState(parsed.owner, parsed.repo);
+      if (stored) {
+        setResultData({
+          explanation: stored.explanation,
+          repo: stored.repo,
+          timestamp: stored.updatedAt,
+          cache: true,
+          default_branch: stored.defaultBranch,
+        });
+        setIsStoredOverview(true);
+        setIsLoading(false);
+        return;
+      }
+    }
+
+    setIsLoading(true);
+    setResultData(null);
+    setIsStoredOverview(false);
     let url = `${config.apiUrl}/${parsed.owner}/${parsed.repo}/stream`;
     if (instructionsTrimmed) {
       url += `?instructions=${encodeURIComponent(instructionsTrimmed)}`;
     }
+    forceRegenerateRef.current = false;
 
     const es = new EventSource(url);
 
@@ -119,6 +160,9 @@ export function InputForm() {
       try {
         const data = JSON.parse(event.data as string) as FormResult;
         setResultData(data);
+        setIsStoredOverview(false);
+        const previousStyle = loadStoredRepoState(parsed.owner, parsed.repo)?.style ?? 'normal';
+        saveRepoOverview(data, previousStyle);
       } catch {
         setError('Invalid response from server');
       }
@@ -177,6 +221,12 @@ export function InputForm() {
     if (parsed) {
       window.open(`https://github.com/${parsed.owner}/${parsed.repo}`, '_blank', 'noopener,noreferrer');
     }
+  };
+
+  const handleRegenerate = () => {
+    if (!formRef.current || isLoading) return;
+    forceRegenerateRef.current = true;
+    formRef.current.requestSubmit();
   };
 
   const exampleRepos = [
@@ -284,7 +334,15 @@ export function InputForm() {
         <LoadingSpinner message={statusMessage} completedSteps={completedSteps} />
       )}
       
-      {!isLoading && resultData && <ResultDisplay data={resultData} />}
+      {!isLoading && resultData && parsedRepo && (
+        <RepoWorkspace
+          data={resultData}
+          owner={parsedRepo.owner}
+          repo={parsedRepo.repo}
+          isStoredOverview={isStoredOverview}
+          onRegenerate={handleRegenerate}
+        />
+      )}
     </div>
   );
 }

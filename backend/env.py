@@ -29,3 +29,11 @@ POSTHOG_HOST: str = os.environ.get("POSTHOG_HOST", "https://us.i.posthog.com")
 # Database-related
 DATABASE_URL: str = os.environ.get("DATABASE_URL", "postgresql+psycopg2://repoexplainer:repoexplainer@localhost:5432/repoexplainer")
 CACHE_TTL_DAYS: int = int(os.environ.get("CACHE_TTL_DAYS", "7"))
+
+# Chat
+CHAT_MAX_MESSAGE_LENGTH: int = int(os.environ.get("CHAT_MAX_MESSAGE_LENGTH", "1000"))
+CHAT_MAX_TOOL_ROUNDS: int = int(os.environ.get("CHAT_MAX_TOOL_ROUNDS", "5"))
+CHAT_WS_MAX_MESSAGES_PER_CONNECTION: int = int(os.environ.get("CHAT_WS_MAX_MESSAGES_PER_CONNECTION", "20"))
+CHAT_WS_RATE_LIMIT_MESSAGES: int = int(os.environ.get("CHAT_WS_RATE_LIMIT_MESSAGES", "30"))
+CHAT_WS_RATE_LIMIT_WINDOW_SECONDS: int = int(os.environ.get("CHAT_WS_RATE_LIMIT_WINDOW_SECONDS", "60"))
+AI_SERVICE_MAX_RETRIES: int = int(os.environ.get("AI_SERVICE_MAX_RETRIES", "3"))

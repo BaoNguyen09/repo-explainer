@@ -1,5 +1,7 @@
-"""Prompts used for Claude API interactions."""
+"""Prompts used for AI provider interactions."""
 
+from functools import lru_cache
+from pathlib import Path
 import re
 from typing import List, Optional
 
@@ -73,6 +75,18 @@ MANDATORY REQUIREMENTS:
 2. The directory structure MUST come AFTER any Mermaid diagrams showing component connections.
 3. The directory structure MUST be formatted as a shell code block using tree characters (├──, └──, │).
 4. The structure should show the main directories and important files, typically 2-3 levels deep.
+5. Whenever you mention any repository file or folder in prose, you MUST use its full repo-relative path from the repository root, not just the basename.
+6. Prefer exact paths taken from the provided tree or `FILE:` headers. Example: write `src/server.c`, not `server.c`.
+
+GROUNDING AND ACCURACY RULES:
+1. Treat the provided repository context as the source of truth for repo-specific facts.
+2. Do NOT invent or overstate history, popularity, intended audience, documentation usage, CI/CD usage, or community significance unless it is explicitly supported by the repository context.
+3. If you infer something from file names or structure, say it is an inference.
+4. For tiny repositories, stay brief instead of padding with external lore.
+5. Only include command examples that are valid, standard commands and directly relevant to this repository. If unsure, omit the command.
+6. Do not use unverifiable labels like "canonical", "legendary", "famous", or "load-bearing" unless the repository context itself supports them.
+7. Do not explain what repositories of this kind "typically", "usually", or "often" do unless the repository context states that purpose. If the purpose is not explicit, say what the files show and avoid guessing intent.
+8. Do not state a repository's "purpose", "intended use", or "why it exists" unless that is explicit in README, package metadata, repository metadata, or another provided source. Otherwise describe only the visible contents and behavior.
 
 REQUIRED FORMAT FOR DIRECTORY STRUCTURE:
 Include a section like this AFTER the diagram section:
@@ -165,5 +179,59 @@ def build_user_prompt(repo_name: str, repo_context: str, user_instructions: Opti
         repo_name=repo_name,
         repo_context=repo_context,
         user_instructions_section=user_instructions_section
+    )
+
+
+CHAT_SYSTEM_TEMPLATE = """You are a knowledgeable assistant helping a developer understand the {owner}/{repo} repository.
+
+You have been given:
+1. A previously generated explanation of the repository.
+2. The repository's directory tree structure.
+
+You also have tools to read specific files or list directory contents when you need more detail to answer accurately.
+
+GUIDELINES:
+- Use tools judiciously, only fetch files when the provided context does not have enough information to answer.
+- Be concise and reference specific file paths and code when relevant.
+- Whenever you mention a repository file or directory, use the full repo-relative path from the repository root, never just the basename.
+- Format your response in Markdown.
+- When showing code, use fenced code blocks with the appropriate language tag.
+- If the user asks about something not in the repository, say so clearly.
+{style_instruction}
+
+REPOSITORY EXPLANATION:
+{explanation}
+
+DIRECTORY TREE:
+{tree}"""
+
+
+@lru_cache(maxsize=1)
+def load_caveman_prompt() -> str:
+    """Load the full caveman mode instructions from the repo prompt asset."""
+    return (Path(__file__).resolve().parent / "prompt_assets" / "caveman.md").read_text(encoding="utf-8").strip()
+
+
+def build_chat_system_prompt(
+    owner: str,
+    repo: str,
+    explanation: str,
+    tree: str,
+    style: str = "normal",
+) -> str:
+    """Build the system prompt for a chat-with-repo conversation."""
+    style_instruction = ""
+    if style == "caveman":
+        style_instruction = (
+            "- Style mode active: caveman, full intensity. Apply the following instructions for every chat response unless the user explicitly asks for normal mode.\n"
+            f"{load_caveman_prompt()}\n"
+        )
+
+    return CHAT_SYSTEM_TEMPLATE.format(
+        owner=owner,
+        repo=repo,
+        explanation=explanation,
+        tree=tree,
+        style_instruction=style_instruction,
     )
 

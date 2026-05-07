@@ -12,6 +12,9 @@ An AI app that explains GitHub repositories through agentic file exploration.
 - **Ask what you need** -- Add instructions (e.g. "Focus on API design") and the explanation is tailored to your question.
 - **Smart file discovery** -- The AI chooses which files to read from the repo tree; we fetch them in parallel for fast results.
 - **Live status updates** -- The UI streams progress (validating, fetching tree, AI exploring files, fetching contents, generating explanation) so you see what’s happening at each step.
+- **Repo follow-up chat** -- After an overview, switch into a repo chat workspace and ask targeted questions about files, flows, and implementation details.
+- **Browser-persistent state** -- Overview text, chat history, and selected chat style are stored per repo in browser `localStorage`, with simple pruning so storage does not grow forever.
+- **Streaming chat replies** -- Chat responses stream into the UI for a faster, more conversational feel.
 - **Safe for large repos** -- Context limits and clear errors (e.g. "repository too large", "rate limit") instead of cryptic failures.
 - **Polished UI** -- Dark/light theme, example repos and prompts, compact layout.
 
@@ -95,6 +98,7 @@ Run the backend API first so the frontend can talk to it; use the same `VITE_BAC
 
 - **`GET /{owner}/{repo}/stream?instructions=...`** -- SSE (Server-Sent Events) stream used by the frontend: sends status events (validating, fetching_tree, exploring_files, fetching_files, generating_explanation) then a single `result` or `error` event with the explanation or message.
 - **`GET /{owner}/{repo}?instructions=...`** -- Optional one-shot JSON response (same payload as the final `result` event). Useful for scripts or clients that don’t need streaming.
+- **`WS /{owner}/{repo}/chat`** -- Follow-up chat endpoint used by the frontend. Browser origins must match `CORS_ORIGINS`, and optional GitHub tokens should be sent in the JSON message payload, not in the URL.
 
 ## One-command local dev (Docker)
 
@@ -178,3 +182,13 @@ We welcome contributions -- whether it’s a bug fix, a new feature, or better d
 - **Scope:** Keep PRs reasonably scoped; for large features, open an issue first to discuss.
 
 Thank you for contributing!
+
+## Stateless chat notes
+
+- Repo explanations are generated fresh on every request. The backend does not cache them in the database.
+- Follow-up chat uses `WS /{owner}/{repo}/chat` and is stateless on the backend.
+- The frontend stores each repo's overview, chat history, and selected style in browser `localStorage`.
+- Chat requests send only a recent rolling history window plus the stored overview text.
+- Re-running overview for the same repo replaces the stored explanation and clears that repo's stored chat history.
+- Chat supports `normal` and `caveman` styles; caveman mode is driven by a dedicated markdown prompt asset loaded by the backend.
+- Chat WebSockets enforce the configured browser origin allow-list plus per-connection and per-IP message limits.

@@ -18,3 +18,4 @@ class ModelResponse(BaseModel):
     repo: str
     timestamp: datetime
     cache: bool
+    default_branch: str

@@ -57,6 +57,7 @@ class GitHubTools:
         self.client = http_client
         self.token = github_token
         self.ref = ref
+        self._resolved_default_branch: Optional[str] = None
 
     def _get_headers(self, accept: str = "application/vnd.github.v3+json") -> dict:
         """Build headers dict with optional auth token."""
@@ -67,6 +68,18 @@ class GitHubTools:
         if self.token:
             headers["Authorization"] = f"Bearer {self.token}"
         return headers
+
+    async def get_default_branch(self, repo: RepoInfo) -> str:
+        """Fetch and memoize the repository default branch."""
+        if self._resolved_default_branch:
+            return self._resolved_default_branch
+
+        headers = self._get_headers()
+        repo_info_url = f"https://api.github.com/repos/{repo.owner}/{repo.repo_name}"
+        repo_info_resp = await self.client.get(repo_info_url, headers=headers)
+        repo_info_resp.raise_for_status()
+        self._resolved_default_branch = repo_info_resp.json().get("default_branch", "main")
+        return self._resolved_default_branch
 
     async def get_file_contents(
         self,
@@ -321,11 +334,8 @@ class GitHubTools:
 
         # 1. Get the ref to use (default branch if None)
         if not ref:
-            repo_info_url = f"https://api.github.com/repos/{repo.owner}/{repo.repo_name}"
             try:
-                repo_info_resp = await self.client.get(repo_info_url, headers=headers)
-                repo_info_resp.raise_for_status()
-                ref = repo_info_resp.json().get("default_branch", "main")
+                ref = await self.get_default_branch(repo)
             except Exception as e:
                 raise GitHubApiError(
                     message=f"Failed to fetch default branch for {repo.owner}/{repo.repo_name}: {str(e)}",

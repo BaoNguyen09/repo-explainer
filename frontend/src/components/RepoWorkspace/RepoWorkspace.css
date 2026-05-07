@@ -1,0 +1,108 @@
+.repo-workspace {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background-color: var(--color-bg-elevated);
+  border-radius: 12px;
+  border: 3px solid var(--color-border);
+  box-shadow: 6px 6px 0 var(--color-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.repo-workspace-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.repo-workspace-header h3 {
+  margin: 0 0 0.35rem 0;
+  color: var(--color-text-strong);
+}
+
+.repo-workspace-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.repo-workspace-cache {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.65rem;
+  border: 2px solid var(--color-border);
+  border-radius: 999px;
+  background-color: var(--color-bg);
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  box-shadow: 3px 3px 0 var(--color-shadow);
+}
+
+.repo-workspace-cache-active {
+  color: var(--color-text-strong);
+}
+
+.repo-workspace-regenerate {
+  border: 2px solid var(--color-border);
+  border-radius: 8px;
+  background-color: var(--color-bg-elevated);
+  color: var(--color-text);
+  cursor: pointer;
+  font: inherit;
+  padding: 0.4rem 0.85rem;
+  box-shadow: 3px 3px 0 var(--color-shadow);
+  transition: transform 0.1s, box-shadow 0.1s, background-color 0.2s;
+}
+
+.repo-workspace-regenerate:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 var(--color-shadow);
+}
+
+.repo-workspace-toggle {
+  display: inline-flex;
+  gap: 0.35rem;
+  padding: 0.25rem;
+  border: 2px solid var(--color-border);
+  border-radius: 10px;
+  background-color: var(--color-bg);
+  box-shadow: 3px 3px 0 var(--color-shadow);
+}
+
+.repo-workspace-tab {
+  border: 2px solid var(--color-border);
+  border-radius: 8px;
+  background-color: var(--color-bg-elevated);
+  color: var(--color-text);
+  cursor: pointer;
+  font: inherit;
+  padding: 0.45rem 0.9rem;
+  transition: transform 0.1s, box-shadow 0.1s, background-color 0.2s;
+}
+
+.repo-workspace-tab:hover {
+  transform: translate(-1px, -1px);
+}
+
+.repo-workspace-tab-active {
+  background-color: var(--color-accent);
+  color: white;
+}
+
+.repo-workspace-panel {
+  min-height: 0;
+}
+
+@media (max-width: 640px) {
+  .repo-workspace {
+    padding: 1rem;
+  }
+
+  .repo-workspace-header {
+    flex-direction: column;
+  }
+}

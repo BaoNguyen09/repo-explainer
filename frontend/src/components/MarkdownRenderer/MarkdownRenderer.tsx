@@ -3,20 +3,32 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { MermaidDiagram } from '../MermaidDiagram';
 import { ShellCodeBlock } from '../ShellCodeBlock';
+import { linkifyRepoPaths } from '../../utils/linkifyRepoPaths';
 import './MarkdownRenderer.css';
 
 interface MarkdownRendererProps {
   content: string;
+  owner?: string;
+  repo?: string;
+  branch?: string;
 }
 
-export function MarkdownRenderer({ content }: MarkdownRendererProps) {
+export function MarkdownRenderer({ content, owner, repo, branch }: MarkdownRendererProps) {
   const mermaidRef = useRef<number>(0);
+  const renderedContent = linkifyRepoPaths(content, owner, repo, branch);
 
   return (
     <div className="markdown-content">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
+          a({ href, children, ...props }) {
+            return (
+              <a href={href} target="_blank" rel="noreferrer" {...props}>
+                {children}
+              </a>
+            );
+          },
           pre({ children, ...props }) {
             // Check if the pre contains a code element with shell/bash language
             if (children && typeof children === 'object' && 'props' in children) {
@@ -92,9 +104,8 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
           },
         }}
       >
-        {content}
+        {renderedContent}
       </ReactMarkdown>
     </div>
   );
 }
-

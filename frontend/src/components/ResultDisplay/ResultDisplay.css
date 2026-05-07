@@ -8,6 +8,14 @@
   box-shadow: 6px 6px 0 var(--color-shadow);
 }
 
+.result-container-embedded {
+  margin-top: 0;
+  padding: 0;
+  background-color: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
 .result-header {
   display: flex;
   justify-content: space-between;
@@ -177,4 +185,3 @@
     padding: 1rem;
   }
 }
-

@@ -383,9 +383,14 @@ class GitHubTools:
         except Exception as e:
             raise GitHubApiError(message=f"An unexpected error occurred while fetching tree for {repo.owner}/{repo.repo_name}@{ref}: {str(e)}") from e
 
+    @staticmethod
+    def _count_tree_files(tree_str: str) -> int:
+        """Count file entries (non-directory lines) in a formatted tree string, for analytics."""
+        return sum(1 for line in tree_str.splitlines() if "── " in line and not line.rstrip().endswith("/"))
+
     async def get_repo_context(
         self, repo: RepoInfo, status_callback: Optional[Callable[[str], None]] = None
-    ) -> tuple[str, bool]:
+    ) -> tuple[str, bool, int, int]:
         """
         Fetch key files in the repo to get general context.
 
@@ -396,7 +401,10 @@ class GitHubTools:
         Returns:
             A string of concatenated content of key files found in root directory
             Boolean as the status of the operation
+            Int count of files present in the fetched tree (for analytics)
+            Int count of files actually read into the context (for analytics)
         """
+        tree_file_count = 0
         try:
             context_parts = []
             total_chars = 0
@@ -405,6 +413,7 @@ class GitHubTools:
             if status_callback:
                 status_callback("fetching_tree")
             tree = await self.fetch_directory_tree_with_depth(repo=repo, depth=self.TREE_DEPTH)
+            tree_file_count = self._count_tree_files(tree)
             if len(tree) > 10000:
                 tree = "(Tree content cropped to 10k characters)\n" + tree[:10000]
             context_parts.append(tree + "\n")
@@ -413,7 +422,7 @@ class GitHubTools:
             # Context #2: File content (agentic: LLM suggests paths + IMPORTANT_FILES, fetch in parallel)
             result = await self.list_directory_files(repo, "")
             if not result[1] or not result[0]:
-                return "Error with getting files at root directory", False
+                return "Error with getting files at root directory", False, tree_file_count, 0
 
             files_at_root = set(result[0])
             root_important = [f for f in self.IMPORTANT_FILES if f in files_at_root]
@@ -426,7 +435,7 @@ class GitHubTools:
             all_paths = list(dict.fromkeys(root_important + llm_paths))[: self.MAX_FILES_TO_FETCH]
 
             if not all_paths:
-                return "No key documentation files found in root.", True
+                return "No key documentation files found in root.", True, tree_file_count, 0
 
             if status_callback:
                 status_callback("fetching_files")
@@ -444,11 +453,11 @@ class GitHubTools:
                     context_parts.append(f"================================================\nFILE: {path}\n================================================\n{content}\n")
                     total_chars += add_len
 
-            return "\n".join(context_parts), True
+            return "\n".join(context_parts), True, tree_file_count, len(all_paths)
 
         except Exception as e:
             utils.logger.error(f"GitHubTools.get_repo_context(): {e}")
-            return str(e), False
+            return str(e), False, tree_file_count, 0
 
 
 # For testing
@@ -456,7 +465,7 @@ async def main():
     async with httpx.AsyncClient() as client:
         github = GitHubTools(client, github_token=None, ref=None)
         repo = RepoInfo(owner="baonguyen09", repo_name="github-second-brain")
-        content, success = await github.get_repo_context(repo)
+        content, success, _tree_file_count, _files_read_count = await github.get_repo_context(repo)
         if success:
             response = await ai_service.explain_repo(repo, content)
             print(response[0])

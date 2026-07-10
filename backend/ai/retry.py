@@ -38,6 +38,21 @@ def is_retryable_ai_error(exc: Exception) -> bool:
     return any(marker in text for marker in RETRYABLE_ERROR_MARKERS)
 
 
+def _track_retry(event: str, **properties) -> None:
+    """Fire-and-forget PostHog capture for retry outcomes (no-op if client disabled).
+
+    Local import avoids a circular import: retry.py <- ai_service.py <- main.py.
+    """
+    try:
+        from backend.main import posthog_client
+
+        if not posthog_client:
+            return
+        posthog_client.capture(distinct_id="server", event=event, properties=properties)
+    except Exception:
+        utils.logger.exception("with_ai_retry: failed to capture %s", event)
+
+
 async def with_ai_retry(
     operation_name: str,
     operation: Callable[[], Awaitable[T]],
@@ -49,10 +64,15 @@ async def with_ai_retry(
 
     for attempt in range(1, max_attempts + 1):
         try:
-            return await operation()
+            result = await operation()
+            if attempt > 1:
+                _track_retry("ai_retry_recovered", operation=operation_name, attempts_used=attempt)
+            return result
         except Exception as exc:  # noqa: BLE001
             last_error = exc
             if not is_retryable_ai_error(exc) or attempt == max_attempts:
+                if is_retryable_ai_error(exc) and attempt == max_attempts and max_attempts > 1:
+                    _track_retry("ai_retry_exhausted", operation=operation_name, attempts=attempt)
                 raise
 
             delay_s = 0.75 * (2 ** (attempt - 1))

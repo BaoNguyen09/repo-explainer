@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useChat } from '../../hooks/useChat';
+import { track } from '../../config/analytics';
 import { clearStoredRepoMessages } from '../../utils/repoStorage';
 import { MarkdownRenderer } from '../MarkdownRenderer';
 import type { ChatMessage, ChatStyle, ChatToolEvent } from '../../types';
@@ -79,6 +80,10 @@ export function ChatInterface({ owner, repo, explanation, defaultBranch, embedde
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, streamingMessage, status]);
+
+  useEffect(() => {
+    track('chat_opened', { owner, repo, repo_full: `${owner}/${repo}` });
+  }, [owner, repo]);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

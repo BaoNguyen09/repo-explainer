@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { config } from '../config/api';
+import { track } from '../config/analytics';
 import { createUpdatedRepoState, loadStoredRepoState, saveStoredRepoState } from '../utils/repoStorage';
 import type { ChatMessage, ChatStatus, ChatStyle, ChatToolEvent } from '../types';
 
@@ -251,6 +252,14 @@ export function useChat(owner: string, repo: string, explanation: string, defaul
 
       const outboundHistory = toOutboundHistory(messagesRef.current);
 
+      track('chat_message_sent', {
+        owner,
+        repo,
+        repo_full: `${owner}/${repo}`,
+        style: styleRef.current,
+        message_index: outboundHistory.length,
+      });
+
       setMessages((prev) => [
         ...prev,
         { role: 'user', content: trimmed, timestamp: new Date().toISOString() },
@@ -270,7 +279,7 @@ export function useChat(owner: string, repo: string, explanation: string, defaul
         }),
       );
     },
-    [explanation],
+    [explanation, owner, repo],
   );
 
   const setStyle = useCallback((nextStyle: ChatStyle) => {

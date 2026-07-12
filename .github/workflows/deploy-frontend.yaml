@@ -27,6 +27,20 @@ jobs:
     steps:
       - name: Check code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history: the app version's patch number is a commit count
+
+      # Version scheme: MAJOR.MINOR comes from frontend/VERSION; PATCH is the number of
+      # commits since that file last changed. Every merge auto-bumps the patch; a PR that
+      # edits frontend/VERSION sets a new MAJOR.MINOR and resets the patch to 0.
+      - name: Compute app version
+        id: appver
+        run: |
+          BASE=$(cat frontend/VERSION | tr -d '[:space:]')
+          LAST=$(git log -1 --format=%H -- frontend/VERSION)
+          PATCH=$(git rev-list --count "$LAST"..HEAD)
+          echo "version=$BASE.$PATCH" >> "$GITHUB_OUTPUT"
+          echo "App version: $BASE.$PATCH"
 
       - name: Setup Pages
         id: pages
@@ -42,6 +56,7 @@ jobs:
         env:
           VITE_BACKEND_API_URL: ${{ secrets.VITE_BACKEND_API_URL || 'http://127.0.0.1:8000' }}
           VITE_GIT_SHA: ${{ github.sha }}
+          VITE_APP_VERSION: ${{ steps.appver.outputs.version }}
           # Baked in at build time; analytics is a no-op if the secret is unset.
           VITE_POSTHOG_KEY: ${{ secrets.VITE_POSTHOG_KEY }}
           VITE_POSTHOG_HOST: ${{ secrets.VITE_POSTHOG_HOST || 'https://us.i.posthog.com' }}

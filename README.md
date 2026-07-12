@@ -74,6 +74,7 @@ bun install
    VITE_BACKEND_API_URL=http://127.0.0.1:8000
    ```
    See [ENV_SETUP.md](ENV_SETUP.md#frontend-environment-variables) for production and other options.
+3. (Optional) Client-side analytics: set `VITE_POSTHOG_KEY` and `VITE_POSTHOG_HOST` to enable PostHog (autocapture, pageviews, and the repo/chat funnel). Leave `VITE_POSTHOG_KEY` blank to disable analytics entirely -- this mirrors the backend's `POSTHOG_API_KEY` opt-in.
 
 ## Development
 

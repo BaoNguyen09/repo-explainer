@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "mermaid": "^11.12.2",
+    "posthog-js": "^1.399.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-icons": "^5.5.0",

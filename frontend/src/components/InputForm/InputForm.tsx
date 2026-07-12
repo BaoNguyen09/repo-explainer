@@ -4,6 +4,7 @@ import type { FormResult } from '../../types';
 import { LoadingSpinner } from '../LoadingSpinner';
 import { RepoWorkspace } from '../RepoWorkspace';
 import { config } from '../../config/api';
+import { track } from '../../config/analytics';
 import { loadStoredRepoState, saveRepoOverview } from '../../utils/repoStorage';
 import './InputForm.css';
 
@@ -78,6 +79,11 @@ export function InputForm() {
           default_branch: stored.defaultBranch,
         });
         setIsStoredOverview(true);
+        track('explanation_viewed_from_cache', {
+          owner: parsed.owner,
+          repo: parsed.repo,
+          repo_full: `${parsed.owner}/${parsed.repo}`,
+        });
         return;
       }
     }
@@ -108,6 +114,11 @@ export function InputForm() {
     }
 
     setParsedRepo({ owner: parsed.owner, repo: parsed.repo });
+    track('repo_submitted', {
+      owner: parsed.owner,
+      repo: parsed.repo,
+      repo_full: `${parsed.owner}/${parsed.repo}`,
+    });
 
     const instructions = formData.get('instructions') as string;
     const instructionsTrimmed = instructions?.trim() || '';
@@ -124,6 +135,11 @@ export function InputForm() {
         });
         setIsStoredOverview(true);
         setIsLoading(false);
+        track('explanation_viewed_from_cache', {
+          owner: parsed.owner,
+          repo: parsed.repo,
+          repo_full: `${parsed.owner}/${parsed.repo}`,
+        });
         return;
       }
     }
@@ -163,6 +179,11 @@ export function InputForm() {
         setIsStoredOverview(false);
         const previousStyle = loadStoredRepoState(parsed.owner, parsed.repo)?.style ?? 'normal';
         saveRepoOverview(data, previousStyle);
+        track('explanation_rendered', {
+          owner: parsed.owner,
+          repo: parsed.repo,
+          repo_full: `${parsed.owner}/${parsed.repo}`,
+        });
       } catch {
         setError('Invalid response from server');
       }

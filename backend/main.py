@@ -27,23 +27,99 @@ if env.POSTHOG_API_KEY:
 
 
 def track_event(
-    request: Request, owner: str, repo: str, endpoint: str, status_name: str
+    request: Request,
+    owner: str,
+    repo: str,
+    endpoint: str,
+    status_name: str,
+    duration_ms: Optional[float] = None,
+    time_to_first_event_ms: Optional[float] = None,
+    tree_file_count: Optional[int] = None,
+    files_read_count: Optional[int] = None,
+    explanation_chars: Optional[int] = None,
+    instructions_present: Optional[bool] = None,
+    error_stage: Optional[str] = None,
+    error_type: Optional[str] = None,
 ) -> None:
     """Record a repo_explained event in PostHog (no-op if client is disabled)."""
     if not posthog_client:
         return
-    client_ip = get_remote_address(request)
-    posthog_client.capture(
-        distinct_id=client_ip,
-        event="repo_explained",
-        properties={
-            "owner": owner,
-            "repo": repo,
-            "repo_full": f"{owner}/{repo}",
-            "endpoint": endpoint,
-            "status": status_name,
-        },
-    )
+    try:
+        client_ip = get_remote_address(request)
+        posthog_client.capture(
+            distinct_id=client_ip,
+            event="repo_explained",
+            properties={
+                "owner": owner,
+                "repo": repo,
+                "repo_full": f"{owner}/{repo}",
+                "endpoint": endpoint,
+                "status": status_name,
+                "duration_ms": duration_ms,
+                "time_to_first_event_ms": time_to_first_event_ms,
+                "provider": env.AI_PROVIDER,
+                "model": env.MODEL,
+                "tree_file_count": tree_file_count,
+                "files_read_count": files_read_count,
+                "explanation_chars": explanation_chars,
+                "instructions_present": instructions_present,
+                "error_stage": error_stage,
+                "error_type": error_type,
+            },
+        )
+    except Exception:
+        utils.logger.exception("track_event: failed to capture repo_explained")
+
+
+def _track_chat_session_started(client_ip: str, owner: str, repo: str) -> None:
+    """Record a chat_session_started event in PostHog (no-op if client is disabled)."""
+    if not posthog_client:
+        return
+    try:
+        posthog_client.capture(
+            distinct_id=client_ip,
+            event="chat_session_started",
+            properties={
+                "owner": owner,
+                "repo": repo,
+                "repo_full": f"{owner}/{repo}",
+            },
+        )
+    except Exception:
+        utils.logger.exception("track_event: failed to capture chat_session_started")
+
+
+def _track_chat_message(
+    client_ip: str,
+    owner: str,
+    repo: str,
+    message_index: int,
+    style: str,
+    status_name: str,
+    time_to_first_token_ms: Optional[float],
+    total_ms: float,
+    response_chars: int,
+) -> None:
+    """Record a chat_message event in PostHog (no-op if client is disabled). Metadata only, never message content."""
+    if not posthog_client:
+        return
+    try:
+        posthog_client.capture(
+            distinct_id=client_ip,
+            event="chat_message",
+            properties={
+                "repo_full": f"{owner}/{repo}",
+                "message_index": message_index,
+                "style": style,
+                "provider": env.AI_PROVIDER,
+                "status": status_name,
+                "time_to_first_token_ms": time_to_first_token_ms,
+                "total_ms": total_ms,
+                "response_chars": response_chars,
+            },
+        )
+    except Exception:
+        utils.logger.exception("track_event: failed to capture chat_message")
 
 
 def _user_facing_error(msg: str) -> str:
@@ -166,6 +242,12 @@ async def explain_repo(
     ref: Optional[str] = None,
     instructions: Optional[str] = Query(None),
 ):
+    start = time.perf_counter()
+    instructions_present = bool(instructions and instructions.strip())
+    tree_file_count: Optional[int] = None
+    files_read_count: Optional[int] = None
+    explanation_chars: Optional[int] = None
+    stage = "github_validation"  # advanced as the pipeline progresses; reported on error
     try:
         async with httpx.AsyncClient() as client:
             res = await client.get(f"https://github.com/{owner}/{repo}")
@@ -178,10 +260,12 @@ async def explain_repo(
 
             github = GitHubTools(client, github_token=github_token, ref=ref)
             default_branch = await github.get_default_branch(repo_info)
-            repo_content, success = await github.get_repo_context(repo_info)
+            stage = "context_fetch"
+            repo_content, success, tree_file_count, files_read_count = await github.get_repo_context(repo_info)
             if not success:
                 raise HTTPException(status_code=500, detail="Failed to fetch repository context")
 
+            stage = "ai_generation"
             explanation, success = await ai_service.explain_repo(
                 repo_info,
                 repo_content,
@@ -193,7 +277,16 @@ async def explain_repo(
                     detail=_user_facing_error(explanation or "Failed to generate explanation"),
                 )
 
-            track_event(request, owner, repo, "explain", "success")
+            explanation_chars = len(explanation)
+            duration_ms = (time.perf_counter() - start) * 1000
+            track_event(
+                request, owner, repo, "explain", "success",
+                duration_ms=duration_ms,
+                tree_file_count=tree_file_count,
+                files_read_count=files_read_count,
+                explanation_chars=explanation_chars,
+                instructions_present=instructions_present,
+            )
             return ModelResponse(
                 explanation=explanation,
                 repo=f"{owner}/{repo}",
@@ -213,14 +306,34 @@ async def explain_repo(
             f"Error accessing repository '{owner}/{repo}' (HTTP {status_code})",
         )
 
-        track_event(request, owner, repo, "explain", "error")
+        duration_ms = (time.perf_counter() - start) * 1000
+        track_event(
+            request, owner, repo, "explain", "error",
+            duration_ms=duration_ms,
+            tree_file_count=tree_file_count,
+            files_read_count=files_read_count,
+            explanation_chars=explanation_chars,
+            instructions_present=instructions_present,
+            error_stage=stage,
+            error_type=f"HTTP{status_code}",
+        )
         raise HTTPException(
             status_code=status_code if status_code < 500 else 500,
             detail=detail,
         )
     except Exception as e:
         utils.logger.exception("Error in explain_repo(): %s", e)
-        track_event(request, owner, repo, "explain", "error")
+        duration_ms = (time.perf_counter() - start) * 1000
+        track_event(
+            request, owner, repo, "explain", "error",
+            duration_ms=duration_ms,
+            tree_file_count=tree_file_count,
+            files_read_count=files_read_count,
+            explanation_chars=explanation_chars,
+            instructions_present=instructions_present,
+            error_stage=stage,
+            error_type=type(e).__name__,
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An error occurred internally on the server",
@@ -242,6 +355,12 @@ async def _run_stream_pipeline(
     queue: asyncio.Queue,
 ) -> None:
     """Run get_repo_context + explain_repo and push status/result/error to queue."""
+    start = time.perf_counter()
+    instructions_present = bool(instructions and instructions.strip())
+    first_event_ms: Optional[float] = None
+    tree_file_count: Optional[int] = None
+    files_read_count: Optional[int] = None
+    pipeline_stage = "github_validation"  # advanced as the pipeline progresses; reported on error
     try:
         async with httpx.AsyncClient() as client:
             repo_info = RepoInfo(owner=owner, repo_name=repo)
@@ -252,13 +371,29 @@ async def _run_stream_pipeline(
             default_branch = await github.get_default_branch(repo_info)
 
             def status_callback(stage: str) -> None:
+                nonlocal first_event_ms
+                if first_event_ms is None:
+                    first_event_ms = (time.perf_counter() - start) * 1000
                 queue.put_nowait(stage)
 
-            repo_content, success = await github.get_repo_context(repo_info, status_callback=status_callback)
+            pipeline_stage = "context_fetch"
+            repo_content, success, tree_file_count, files_read_count = await github.get_repo_context(
+                repo_info, status_callback=status_callback
+            )
             if not success:
+                track_event(
+                    request, owner, repo, "stream", "error",
+                    duration_ms=(time.perf_counter() - start) * 1000,
+                    time_to_first_event_ms=first_event_ms,
+                    tree_file_count=tree_file_count,
+                    files_read_count=files_read_count,
+                    instructions_present=instructions_present,
+                    error_stage=pipeline_stage,
+                )
                 queue.put_nowait({"error": "Failed to fetch repository context"})
                 return
 
+            pipeline_stage = "ai_generation"
             explanation, success = await ai_service.explain_repo(
                 repo_info,
                 repo_content,
@@ -266,10 +401,28 @@ async def _run_stream_pipeline(
                 status_callback=status_callback,
             )
             if not success:
+                track_event(
+                    request, owner, repo, "stream", "error",
+                    duration_ms=(time.perf_counter() - start) * 1000,
+                    time_to_first_event_ms=first_event_ms,
+                    tree_file_count=tree_file_count,
+                    files_read_count=files_read_count,
+                    instructions_present=instructions_present,
+                    error_stage=pipeline_stage,
+                )
                 queue.put_nowait({"error": _user_facing_error(explanation or "Failed to generate explanation")})
                 return
 
-            track_event(request, owner, repo, "stream", "success")
+            duration_ms = (time.perf_counter() - start) * 1000
+            track_event(
+                request, owner, repo, "stream", "success",
+                duration_ms=duration_ms,
+                time_to_first_event_ms=first_event_ms,
+                tree_file_count=tree_file_count,
+                files_read_count=files_read_count,
+                explanation_chars=len(explanation),
+                instructions_present=instructions_present,
+            )
             queue.put_nowait(
                 {
                     "done": True,
@@ -284,7 +437,17 @@ async def _run_stream_pipeline(
             )
     except Exception as e:
         utils.logger.exception("Stream pipeline error: %s", e)
-        track_event(request, owner, repo, "stream", "error")
+        duration_ms = (time.perf_counter() - start) * 1000
+        track_event(
+            request, owner, repo, "stream", "error",
+            duration_ms=duration_ms,
+            time_to_first_event_ms=first_event_ms,
+            tree_file_count=tree_file_count,
+            files_read_count=files_read_count,
+            instructions_present=instructions_present,
+            error_stage=pipeline_stage,
+            error_type=type(e).__name__,
+        )
         queue.put_nowait({"error": str(e)})
 
 
@@ -372,6 +535,7 @@ async def chat_websocket(
     await websocket.accept()
     client_ip = websocket.client.host if websocket.client else "unknown"
     messages_processed = 0
+    _track_chat_session_started(client_ip, owner, repo)
 
     try:
         while True:
@@ -455,7 +619,13 @@ async def chat_websocket(
             async def tool_call_callback(tool_name: str, detail: str) -> None:
                 await websocket.send_json({"type": "tool_call", "tool": tool_name, "path": detail})
 
-            async def chunk_callback(delta: str) -> None:
+            msg_start = time.perf_counter()
+            first_chunk_ms: Optional[float] = None
+
+            async def chunk_callback(delta: str, _msg_start: float = msg_start) -> None:
+                nonlocal first_chunk_ms
+                if first_chunk_ms is None:
+                    first_chunk_ms = (time.perf_counter() - _msg_start) * 1000
                 await websocket.send_json({"type": "chunk", "delta": delta})
 
             try:
@@ -476,9 +646,17 @@ async def chat_websocket(
                     )
 
                 await websocket.send_json({"type": "result", "message": response_text})
+                _track_chat_message(
+                    client_ip, owner, repo, messages_processed, style, "success",
+                    first_chunk_ms, (time.perf_counter() - msg_start) * 1000, len(response_text),
+                )
             except Exception as e:
                 utils.logger.exception("Chat pipeline error for %s/%s from %s: %s", owner, repo, client_ip, e)
                 await websocket.send_json({"type": "error", "detail": _user_facing_error(str(e))})
+                _track_chat_message(
+                    client_ip, owner, repo, messages_processed, style, f"error:{type(e).__name__}",
+                    first_chunk_ms, (time.perf_counter() - msg_start) * 1000, 0,
+                )
     except WebSocketDisconnect:
         utils.logger.info("Chat WebSocket disconnected: %s/%s from %s", owner, repo, client_ip)
     except Exception as e:
@@ -487,6 +665,13 @@ async def chat_websocket(
             await websocket.close(code=1011, reason="Internal server error")
         except Exception:
             pass
+    finally:
+        # WS handlers bypass the HTTP flush middleware, so flush explicitly here.
+        if posthog_client:
+            try:
+                posthog_client.flush()
+            except Exception:
+                utils.logger.exception("chat_websocket: failed to flush PostHog events")
 
 
 @app.get(

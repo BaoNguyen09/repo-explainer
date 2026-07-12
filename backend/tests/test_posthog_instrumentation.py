@@ -58,6 +58,55 @@ def test_track_event_captures_enriched_repo_explained_properties(monkeypatch):
     assert props["model"] == main.env.MODEL
 
 
+def test_track_event_captures_error_stage_and_type(monkeypatch):
+    """Error events should carry error_stage/error_type so failures can be ranked by component."""
+    mock_client = MagicMock()
+    monkeypatch.setattr(main, "posthog_client", mock_client)
+
+    main.track_event(
+        _fake_request(), "octocat", "Hello-World", "explain", "error",
+        error_stage="ai_generation", error_type="HTTPException",
+    )
+
+    props = mock_client.capture.call_args.kwargs["properties"]
+    assert props["error_stage"] == "ai_generation"
+    assert props["error_type"] == "HTTPException"
+
+
+def test_stream_pipeline_ai_failure_captures_error_event(monkeypatch):
+    """The stream pipeline's early-return AI failure must still emit a repo_explained error."""
+    import asyncio
+
+    mock_client = MagicMock()
+    monkeypatch.setattr(main, "posthog_client", mock_client)
+
+    async def fake_get_default_branch(self, repo):
+        return "main"
+
+    async def fake_get_repo_context(self, repo, status_callback=None):
+        return "some context", True, 5, 2
+
+    async def fake_explain_repo(repo, content, instructions=None, status_callback=None):
+        return "model overloaded", False
+
+    monkeypatch.setattr(GitHubTools, "get_default_branch", fake_get_default_branch)
+    monkeypatch.setattr(GitHubTools, "get_repo_context", fake_get_repo_context)
+    monkeypatch.setattr(main.ai_service, "explain_repo", fake_explain_repo)
+
+    queue: asyncio.Queue = asyncio.Queue()
+    asyncio.run(
+        main._run_stream_pipeline("octocat", "Hello-World", None, None, _fake_request(), queue)
+    )
+
+    mock_client.capture.assert_called_once()
+    kwargs = mock_client.capture.call_args.kwargs
+    assert kwargs["event"] == "repo_explained"
+    props = kwargs["properties"]
+    assert props["status"] == "error"
+    assert props["error_stage"] == "ai_generation"
+    assert props["tree_file_count"] == 5
+
+
 def test_track_event_never_raises_when_capture_fails(monkeypatch):
     """A broken PostHog client must never break the request path."""
     mock_client = MagicMock()

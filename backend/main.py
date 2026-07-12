@@ -38,6 +38,8 @@ def track_event(
     files_read_count: Optional[int] = None,
     explanation_chars: Optional[int] = None,
     instructions_present: Optional[bool] = None,
+    error_stage: Optional[str] = None,
+    error_type: Optional[str] = None,
 ) -> None:
     """Record a repo_explained event in PostHog (no-op if client is disabled)."""
     if not posthog_client:
@@ -61,6 +63,8 @@ def track_event(
                 "files_read_count": files_read_count,
                 "explanation_chars": explanation_chars,
                 "instructions_present": instructions_present,
+                "error_stage": error_stage,
+                "error_type": error_type,
             },
         )
     except Exception:
@@ -243,6 +247,7 @@ async def explain_repo(
     tree_file_count: Optional[int] = None
     files_read_count: Optional[int] = None
     explanation_chars: Optional[int] = None
+    stage = "github_validation"  # advanced as the pipeline progresses; reported on error
     try:
         async with httpx.AsyncClient() as client:
             res = await client.get(f"https://github.com/{owner}/{repo}")
@@ -255,10 +260,12 @@ async def explain_repo(
 
             github = GitHubTools(client, github_token=github_token, ref=ref)
             default_branch = await github.get_default_branch(repo_info)
+            stage = "context_fetch"
             repo_content, success, tree_file_count, files_read_count = await github.get_repo_context(repo_info)
             if not success:
                 raise HTTPException(status_code=500, detail="Failed to fetch repository context")
 
+            stage = "ai_generation"
             explanation, success = await ai_service.explain_repo(
                 repo_info,
                 repo_content,
@@ -307,6 +314,8 @@ async def explain_repo(
             files_read_count=files_read_count,
             explanation_chars=explanation_chars,
             instructions_present=instructions_present,
+            error_stage=stage,
+            error_type=f"HTTP{status_code}",
         )
         raise HTTPException(
             status_code=status_code if status_code < 500 else 500,
@@ -322,6 +331,8 @@ async def explain_repo(
             files_read_count=files_read_count,
             explanation_chars=explanation_chars,
             instructions_present=instructions_present,
+            error_stage=stage,
+            error_type=type(e).__name__,
         )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -349,6 +360,7 @@ async def _run_stream_pipeline(
     first_event_ms: Optional[float] = None
     tree_file_count: Optional[int] = None
     files_read_count: Optional[int] = None
+    pipeline_stage = "github_validation"  # advanced as the pipeline progresses; reported on error
     try:
         async with httpx.AsyncClient() as client:
             repo_info = RepoInfo(owner=owner, repo_name=repo)
@@ -364,13 +376,24 @@ async def _run_stream_pipeline(
                     first_event_ms = (time.perf_counter() - start) * 1000
                 queue.put_nowait(stage)
 
+            pipeline_stage = "context_fetch"
             repo_content, success, tree_file_count, files_read_count = await github.get_repo_context(
                 repo_info, status_callback=status_callback
             )
             if not success:
+                track_event(
+                    request, owner, repo, "stream", "error",
+                    duration_ms=(time.perf_counter() - start) * 1000,
+                    time_to_first_event_ms=first_event_ms,
+                    tree_file_count=tree_file_count,
+                    files_read_count=files_read_count,
+                    instructions_present=instructions_present,
+                    error_stage=pipeline_stage,
+                )
                 queue.put_nowait({"error": "Failed to fetch repository context"})
                 return
 
+            pipeline_stage = "ai_generation"
             explanation, success = await ai_service.explain_repo(
                 repo_info,
                 repo_content,
@@ -378,6 +401,15 @@ async def _run_stream_pipeline(
                 status_callback=status_callback,
             )
             if not success:
+                track_event(
+                    request, owner, repo, "stream", "error",
+                    duration_ms=(time.perf_counter() - start) * 1000,
+                    time_to_first_event_ms=first_event_ms,
+                    tree_file_count=tree_file_count,
+                    files_read_count=files_read_count,
+                    instructions_present=instructions_present,
+                    error_stage=pipeline_stage,
+                )
                 queue.put_nowait({"error": _user_facing_error(explanation or "Failed to generate explanation")})
                 return
 
@@ -413,6 +445,8 @@ async def _run_stream_pipeline(
             tree_file_count=tree_file_count,
             files_read_count=files_read_count,
             instructions_present=instructions_present,
+            error_stage=pipeline_stage,
+            error_type=type(e).__name__,
         )
         queue.put_nowait({"error": str(e)})
 

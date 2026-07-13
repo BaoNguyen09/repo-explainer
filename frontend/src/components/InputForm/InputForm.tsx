@@ -4,7 +4,7 @@ import type { FormResult } from '../../types';
 import { LoadingSpinner } from '../LoadingSpinner';
 import { RepoWorkspace } from '../RepoWorkspace';
 import { config } from '../../config/api';
-import { track } from '../../config/analytics';
+import { track, getDistinctId } from '../../config/analytics';
 import { loadStoredRepoState, saveRepoOverview } from '../../utils/repoStorage';
 import './InputForm.css';
 
@@ -149,10 +149,17 @@ export function InputForm() {
     setIsLoading(true);
     setResultData(null);
     setIsStoredOverview(false);
-    let url = `${config.apiUrl}/${parsed.owner}/${parsed.repo}/stream`;
+    // EventSource cannot set headers, so identity travels as a query param.
+    const streamParams = new URLSearchParams();
     if (instructionsTrimmed) {
-      url += `?instructions=${encodeURIComponent(instructionsTrimmed)}`;
+      streamParams.set('instructions', instructionsTrimmed);
     }
+    const distinctId = getDistinctId();
+    if (distinctId) {
+      streamParams.set('distinct_id', distinctId);
+    }
+    const queryString = streamParams.toString();
+    const url = `${config.apiUrl}/${parsed.owner}/${parsed.repo}/stream${queryString ? `?${queryString}` : ''}`;
     forceRegenerateRef.current = false;
 
     const es = new EventSource(url);

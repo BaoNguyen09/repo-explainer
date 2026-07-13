@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { config } from '../config/api';
-import { track } from '../config/analytics';
+import { track, getDistinctId } from '../config/analytics';
 import { createUpdatedRepoState, loadStoredRepoState, saveStoredRepoState } from '../utils/repoStorage';
 import type { ChatMessage, ChatStatus, ChatStyle, ChatToolEvent } from '../types';
 
@@ -105,7 +105,9 @@ export function useChat(owner: string, repo: string, explanation: string, defaul
     if (!mountedRef.current) return;
     cleanup();
 
-    const url = `${config.wsUrl}/${owner}/${repo}/chat`;
+    // Browsers cannot set WebSocket headers, so identity travels as a query param.
+    const distinctId = getDistinctId();
+    const url = `${config.wsUrl}/${owner}/${repo}/chat${distinctId ? `?distinct_id=${encodeURIComponent(distinctId)}` : ''}`;
     setConnectionState('connecting');
 
     const ws = new WebSocket(url);

@@ -1,6 +1,7 @@
 import asyncio
 from collections import defaultdict, deque
 import json
+import re
 import time
 from typing import Any, Optional
 
@@ -26,6 +27,29 @@ if env.POSTHOG_API_KEY:
     posthog_client = Posthog(env.POSTHOG_API_KEY, host=env.POSTHOG_HOST)
 
 
+# posthog-js anonymous IDs are UUID-like; anything outside this shape is
+# untrusted input on a public endpoint and must not become a PostHog person.
+_DISTINCT_ID_RE = re.compile(r"[A-Za-z0-9._-]{1,64}")
+
+
+def _analytics_distinct_id(query_params: Any, client_ip: str) -> str:
+    """Pick the PostHog identity for a backend event.
+
+    The frontend passes its posthog-js distinct_id as a `distinct_id` query
+    param (EventSource and WebSocket cannot set custom headers), so backend
+    events attach to the same PostHog person as the browser's events.
+    Falls back to the client IP when no usable distinct_id was provided.
+    Never raises: analytics must not break the request path.
+    """
+    try:
+        candidate = (query_params.get("distinct_id") or "").strip()
+        if _DISTINCT_ID_RE.fullmatch(candidate):
+            return candidate
+    except Exception:
+        pass
+    return client_ip
+
+
 def track_event(
     request: Request,
     owner: str,
@@ -48,9 +72,10 @@ def track_event(
     try:
         client_ip = get_remote_address(request)
         posthog_client.capture(
-            distinct_id=client_ip,
+            distinct_id=_analytics_distinct_id(request.query_params, client_ip),
             event="repo_explained",
             properties={
+                "client_ip": client_ip,
                 "owner": owner,
                 "repo": repo,
                 "repo_full": f"{owner}/{repo}",
@@ -73,15 +98,16 @@ def track_event(
         utils.logger.exception("track_event: failed to capture repo_explained")
 
 
-def _track_chat_session_started(client_ip: str, owner: str, repo: str) -> None:
+def _track_chat_session_started(distinct_id: str, client_ip: str, owner: str, repo: str) -> None:
     """Record a chat_session_started event in PostHog (no-op if client is disabled)."""
     if not posthog_client:
         return
     try:
         posthog_client.capture(
-            distinct_id=client_ip,
+            distinct_id=distinct_id,
             event="chat_session_started",
             properties={
+                "client_ip": client_ip,
                 "owner": owner,
                 "repo": repo,
                 "repo_full": f"{owner}/{repo}",
@@ -92,6 +118,7 @@ def _track_chat_session_started(client_ip: str, owner: str, repo: str) -> None:
 
 
 def _track_chat_message(
+    distinct_id: str,
     client_ip: str,
     owner: str,
     repo: str,
@@ -107,9 +134,10 @@ def _track_chat_message(
         return
     try:
         posthog_client.capture(
-            distinct_id=client_ip,
+            distinct_id=distinct_id,
             event="chat_message",
             properties={
+                "client_ip": client_ip,
                 "repo_full": f"{owner}/{repo}",
                 "message_index": message_index,
                 "style": style,
@@ -540,8 +568,9 @@ async def chat_websocket(
 
     await websocket.accept()
     client_ip = websocket.client.host if websocket.client else "unknown"
+    distinct_id = _analytics_distinct_id(websocket.query_params, client_ip)
     messages_processed = 0
-    _track_chat_session_started(client_ip, owner, repo)
+    _track_chat_session_started(distinct_id, client_ip, owner, repo)
 
     try:
         while True:
@@ -653,14 +682,14 @@ async def chat_websocket(
 
                 await websocket.send_json({"type": "result", "message": response_text})
                 _track_chat_message(
-                    client_ip, owner, repo, messages_processed, style, "success",
+                    distinct_id, client_ip, owner, repo, messages_processed, style, "success",
                     first_chunk_ms, (time.perf_counter() - msg_start) * 1000, len(response_text),
                 )
             except Exception as e:
                 utils.logger.exception("Chat pipeline error for %s/%s from %s: %s", owner, repo, client_ip, e)
                 await websocket.send_json({"type": "error", "detail": _user_facing_error(str(e))})
                 _track_chat_message(
-                    client_ip, owner, repo, messages_processed, style, f"error:{type(e).__name__}",
+                    distinct_id, client_ip, owner, repo, messages_processed, style, f"error:{type(e).__name__}",
                     first_chunk_ms, (time.perf_counter() - msg_start) * 1000, 0,
                 )
     except WebSocketDisconnect:

@@ -11,9 +11,48 @@ from backend.ai.retry import with_ai_retry
 from backend.github_tools import GitHubTools
 
 
-def _fake_request(client_ip: str = "1.2.3.4") -> SimpleNamespace:
+def _fake_request(client_ip: str = "1.2.3.4", query_params: dict | None = None) -> SimpleNamespace:
     """Minimal stand-in for a Starlette Request, enough for get_remote_address()."""
-    return SimpleNamespace(client=SimpleNamespace(host=client_ip), headers={})
+    return SimpleNamespace(
+        client=SimpleNamespace(host=client_ip), headers={}, query_params=query_params or {}
+    )
+
+
+def test_analytics_distinct_id_prefers_valid_browser_id():
+    browser_id = "019f5775-1877-72c2-8e4c-f90f9044ae4f"
+    assert main._analytics_distinct_id({"distinct_id": browser_id}, "1.2.3.4") == browser_id
+
+
+@pytest.mark.parametrize(
+    "params",
+    [
+        {},
+        {"distinct_id": ""},
+        {"distinct_id": "   "},
+        {"distinct_id": "x" * 65},
+        {"distinct_id": "<script>alert(1)</script>"},
+        {"distinct_id": "id with spaces"},
+        {"distinct_id": None},
+    ],
+)
+def test_analytics_distinct_id_falls_back_to_ip_on_missing_or_junk(params):
+    """Unusable query-param IDs must never become PostHog persons."""
+    assert main._analytics_distinct_id(params, "1.2.3.4") == "1.2.3.4"
+
+
+def test_track_event_uses_browser_distinct_id_from_query_params(monkeypatch):
+    """repo_explained should join the browser's PostHog person, keeping IP as a property."""
+    mock_client = MagicMock()
+    monkeypatch.setattr(main, "posthog_client", mock_client)
+
+    main.track_event(
+        _fake_request(query_params={"distinct_id": "browser-id-123"}),
+        "octocat", "Hello-World", "explain", "success",
+    )
+
+    kwargs = mock_client.capture.call_args.kwargs
+    assert kwargs["distinct_id"] == "browser-id-123"
+    assert kwargs["properties"]["client_ip"] == "1.2.3.4"
 
 
 def test_track_event_is_noop_without_posthog_client(monkeypatch):
@@ -120,12 +159,13 @@ def test_track_chat_session_started_captures_repo_properties(monkeypatch):
     mock_client = MagicMock()
     monkeypatch.setattr(main, "posthog_client", mock_client)
 
-    main._track_chat_session_started("9.9.9.9", "octocat", "Hello-World")
+    main._track_chat_session_started("browser-id-123", "9.9.9.9", "octocat", "Hello-World")
 
     mock_client.capture.assert_called_once()
     kwargs = mock_client.capture.call_args.kwargs
     assert kwargs["event"] == "chat_session_started"
-    assert kwargs["distinct_id"] == "9.9.9.9"
+    assert kwargs["distinct_id"] == "browser-id-123"
+    assert kwargs["properties"]["client_ip"] == "9.9.9.9"
     assert kwargs["properties"]["repo_full"] == "octocat/Hello-World"
 
 
@@ -135,7 +175,7 @@ def test_track_chat_message_never_includes_message_content(monkeypatch):
     monkeypatch.setattr(main, "posthog_client", mock_client)
 
     main._track_chat_message(
-        "9.9.9.9", "octocat", "Hello-World",
+        "browser-id-123", "9.9.9.9", "octocat", "Hello-World",
         message_index=2, style="caveman", status_name="success",
         time_to_first_token_ms=42.0, total_ms=200.0, response_chars=80,
     )

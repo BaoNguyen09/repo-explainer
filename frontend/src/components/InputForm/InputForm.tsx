@@ -4,7 +4,7 @@ import type { FormResult } from '../../types';
 import { LoadingSpinner } from '../LoadingSpinner';
 import { RepoWorkspace } from '../RepoWorkspace';
 import { config } from '../../config/api';
-import { track } from '../../config/analytics';
+import { track, getDistinctId } from '../../config/analytics';
 import { loadStoredRepoState, saveRepoOverview } from '../../utils/repoStorage';
 import './InputForm.css';
 
@@ -49,6 +49,7 @@ export function InputForm() {
   const formRef = useRef<HTMLFormElement>(null);
   const hasAutoSubmittedRef = useRef(false);
   const gotResultRef = useRef(false);
+  const failureTrackedRef = useRef(false);
   const forceRegenerateRef = useRef(false);
 
   // When URL path is /owner/repo (e.g. from extension), prefill form and auto-submit once
@@ -97,6 +98,7 @@ export function InputForm() {
     setStatusMessage(null);
     setCompletedSteps([]);
     gotResultRef.current = false;
+    failureTrackedRef.current = false;
 
     const formData = new FormData(e.currentTarget);
     const query = formData.get('query') as string;
@@ -147,13 +149,34 @@ export function InputForm() {
     setIsLoading(true);
     setResultData(null);
     setIsStoredOverview(false);
-    let url = `${config.apiUrl}/${parsed.owner}/${parsed.repo}/stream`;
+    // EventSource cannot set headers, so identity travels as a query param.
+    const streamParams = new URLSearchParams();
     if (instructionsTrimmed) {
-      url += `?instructions=${encodeURIComponent(instructionsTrimmed)}`;
+      streamParams.set('instructions', instructionsTrimmed);
     }
+    const distinctId = getDistinctId();
+    if (distinctId) {
+      streamParams.set('distinct_id', distinctId);
+    }
+    const queryString = streamParams.toString();
+    const url = `${config.apiUrl}/${parsed.owner}/${parsed.repo}/stream${queryString ? `?${queryString}` : ''}`;
     forceRegenerateRef.current = false;
 
     const es = new EventSource(url);
+
+    // A native connection error fires both the 'error' listener and es.onerror,
+    // so guard against capturing explanation_failed twice for one submission.
+    const trackFailure = (source: string, detail?: string) => {
+      if (failureTrackedRef.current) return;
+      failureTrackedRef.current = true;
+      track('explanation_failed', {
+        owner: parsed.owner,
+        repo: parsed.repo,
+        repo_full: `${parsed.owner}/${parsed.repo}`,
+        source,
+        detail: detail ? detail.slice(0, 200) : undefined,
+      });
+    };
 
     es.addEventListener('status', (event: MessageEvent) => {
       try {
@@ -186,6 +209,7 @@ export function InputForm() {
         });
       } catch {
         setError('Invalid response from server');
+        trackFailure('invalid_response');
       }
       es.close();
       setIsLoading(false);
@@ -199,10 +223,12 @@ export function InputForm() {
           const data = JSON.parse(event.data as string) as { detail?: string };
           if (data?.detail) {
             setError(data.detail);
+            trackFailure('server_error', data.detail);
           }
         }
       } catch {
         setError('Connection lost or server error');
+        trackFailure('server_error');
       }
       es.close();
       setIsLoading(false);
@@ -213,6 +239,7 @@ export function InputForm() {
     es.onerror = () => {
       if (!gotResultRef.current) {
         setError((prev) => prev || 'Connection lost or server error');
+        trackFailure('connection_lost');
       }
       es.close();
       setIsLoading(false);

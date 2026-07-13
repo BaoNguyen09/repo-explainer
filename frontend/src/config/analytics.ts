@@ -19,3 +19,12 @@ export function track(event: string, properties?: Record<string, unknown>): void
   if (!POSTHOG_KEY) return;
   posthog.capture(event, properties);
 }
+
+/**
+ * The browser's PostHog distinct_id, passed to the backend so server-side
+ * events attach to the same PostHog person as frontend events.
+ * Null when PostHog is disabled.
+ */
+export function getDistinctId(): string | null {
+  return POSTHOG_KEY ? posthog.get_distinct_id() : null;
+}

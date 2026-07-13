@@ -39,6 +39,7 @@ class GitHubTools:
     MAX_TOTAL_CHARS = 100_000  # ~25k tokens or 100kb
     MAX_FILE_CHARS = 30_000   # Cap per-file so one huge file (e.g. lockfile) doesn't dominate
     MAX_FILES_TO_FETCH = 25   # Cap merged list (IMPORTANT_FILES + LLM-suggested) for rate limits
+    MAX_CONCURRENT_FETCHES = 5  # GitHub's secondary rate limit punishes request bursts
 
     def __init__(
         self, 
@@ -439,10 +440,23 @@ class GitHubTools:
 
             if status_callback:
                 status_callback("fetching_files")
-            tasks = [self.get_file_contents(repo, p) for p in all_paths]
-            results = await asyncio.gather(*tasks)
+            semaphore = asyncio.Semaphore(self.MAX_CONCURRENT_FETCHES)
 
-            for path, (content, success) in zip(all_paths, results):
+            async def fetch_with_limit(path: str):
+                async with semaphore:
+                    return await self.get_file_contents(repo, path)
+
+            # return_exceptions so one flaky fetch (403/timeout) skips that file
+            # instead of discarding the whole context.
+            results = await asyncio.gather(
+                *(fetch_with_limit(p) for p in all_paths), return_exceptions=True
+            )
+
+            for path, result in zip(all_paths, results):
+                if isinstance(result, BaseException):
+                    utils.logger.warning(f"get_repo_context: skipping {path}: {result}")
+                    continue
+                content, success = result
                 if success and content:
                     if len(content) > self.MAX_FILE_CHARS:
                         content = content[: self.MAX_FILE_CHARS] + "\n... (file truncated for length)\n"

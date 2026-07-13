@@ -49,6 +49,7 @@ export function InputForm() {
   const formRef = useRef<HTMLFormElement>(null);
   const hasAutoSubmittedRef = useRef(false);
   const gotResultRef = useRef(false);
+  const failureTrackedRef = useRef(false);
   const forceRegenerateRef = useRef(false);
 
   // When URL path is /owner/repo (e.g. from extension), prefill form and auto-submit once
@@ -97,6 +98,7 @@ export function InputForm() {
     setStatusMessage(null);
     setCompletedSteps([]);
     gotResultRef.current = false;
+    failureTrackedRef.current = false;
 
     const formData = new FormData(e.currentTarget);
     const query = formData.get('query') as string;
@@ -155,6 +157,20 @@ export function InputForm() {
 
     const es = new EventSource(url);
 
+    // A native connection error fires both the 'error' listener and es.onerror,
+    // so guard against capturing explanation_failed twice for one submission.
+    const trackFailure = (source: string, detail?: string) => {
+      if (failureTrackedRef.current) return;
+      failureTrackedRef.current = true;
+      track('explanation_failed', {
+        owner: parsed.owner,
+        repo: parsed.repo,
+        repo_full: `${parsed.owner}/${parsed.repo}`,
+        source,
+        detail: detail ? detail.slice(0, 200) : undefined,
+      });
+    };
+
     es.addEventListener('status', (event: MessageEvent) => {
       try {
         const data = JSON.parse(event.data as string) as { stage?: string };
@@ -186,6 +202,7 @@ export function InputForm() {
         });
       } catch {
         setError('Invalid response from server');
+        trackFailure('invalid_response');
       }
       es.close();
       setIsLoading(false);
@@ -199,10 +216,12 @@ export function InputForm() {
           const data = JSON.parse(event.data as string) as { detail?: string };
           if (data?.detail) {
             setError(data.detail);
+            trackFailure('server_error', data.detail);
           }
         }
       } catch {
         setError('Connection lost or server error');
+        trackFailure('server_error');
       }
       es.close();
       setIsLoading(false);
@@ -213,6 +232,7 @@ export function InputForm() {
     es.onerror = () => {
       if (!gotResultRef.current) {
         setError((prev) => prev || 'Connection lost or server error');
+        trackFailure('connection_lost');
       }
       es.close();
       setIsLoading(false);

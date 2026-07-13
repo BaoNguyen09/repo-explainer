@@ -6,10 +6,10 @@
  */
 export function getWaitMessage(elapsedSeconds: number): string {
   if (elapsedSeconds >= 75) {
-    return 'Still working — hang tight, this is longer than usual.';
+    return 'Still working - hang tight, this is longer than usual.';
   }
   if (elapsedSeconds >= 4) {
-    return 'Waking up the server — free hosting sleeps when idle. Usually ready in under a minute.';
+    return 'Waking up the server. Usually ready in under a minute.';
   }
   return 'Connecting...';
 }

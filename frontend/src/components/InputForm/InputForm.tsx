@@ -44,6 +44,7 @@ export function InputForm() {
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [completedSteps, setCompletedSteps] = useState<string[]>([]);
   const [parsedRepo, setParsedRepo] = useState<{ owner: string; repo: string } | null>(null);
+  const [notifyEnabled, setNotifyEnabled] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const instructionsRef = useRef<HTMLTextAreaElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
@@ -51,6 +52,9 @@ export function InputForm() {
   const gotResultRef = useRef(false);
   const failureTrackedRef = useRef(false);
   const forceRegenerateRef = useRef(false);
+  // Ref mirror of notifyEnabled so the SSE handlers (captured at submit time) always
+  // see the latest opt-in state, even if the user enables notifications mid-request.
+  const notifyEnabledRef = useRef(false);
 
   // When URL path is /owner/repo (e.g. from extension), prefill form and auto-submit once
   useEffect(() => {
@@ -91,6 +95,36 @@ export function InputForm() {
 
     formRef.current.requestSubmit();
   }, []);
+
+  // Permission must be requested from a user gesture (the button click) — Chrome
+  // silently blocks/auto-dismisses prompts triggered any other way.
+  const handleEnableNotifications = () => {
+    if (!('Notification' in window) || Notification.permission === 'denied') return;
+    Notification.requestPermission().then((permission) => {
+      if (permission !== 'granted') return;
+      notifyEnabledRef.current = true;
+      setNotifyEnabled(true);
+      if (parsedRepo) {
+        track('notification_opt_in', {
+          owner: parsedRepo.owner,
+          repo: parsedRepo.repo,
+          repo_full: `${parsedRepo.owner}/${parsedRepo.repo}`,
+        });
+      }
+    });
+  };
+
+  // Only notify if the user opted in and has actually tabbed away — a visible tab
+  // already shows the result, so a notification there would just be noise.
+  const notifyIfHidden = (title: string) => {
+    if (!notifyEnabledRef.current || document.visibilityState !== 'hidden') return;
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+    const notification = new Notification(title);
+    notification.onclick = () => {
+      window.focus();
+      notification.close();
+    };
+  };
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -207,9 +241,11 @@ export function InputForm() {
           repo: parsed.repo,
           repo_full: `${parsed.owner}/${parsed.repo}`,
         });
+        notifyIfHidden('Your repo explanation is ready ✅');
       } catch {
         setError('Invalid response from server');
         trackFailure('invalid_response');
+        notifyIfHidden('Your repo explanation failed ❌');
       }
       es.close();
       setIsLoading(false);
@@ -230,6 +266,7 @@ export function InputForm() {
         setError('Connection lost or server error');
         trackFailure('server_error');
       }
+      notifyIfHidden('Your repo explanation failed ❌');
       es.close();
       setIsLoading(false);
       setStatusMessage(null);
@@ -240,6 +277,7 @@ export function InputForm() {
       if (!gotResultRef.current) {
         setError((prev) => prev || 'Connection lost or server error');
         trackFailure('connection_lost');
+        notifyIfHidden('Your repo explanation failed ❌');
       }
       es.close();
       setIsLoading(false);
@@ -379,7 +417,13 @@ export function InputForm() {
       )}
 
       {isLoading && (
-        <LoadingSpinner message={statusMessage} completedSteps={completedSteps} />
+        <LoadingSpinner
+          message={statusMessage}
+          completedSteps={completedSteps}
+          notifySupported={'Notification' in window && Notification.permission !== 'denied'}
+          notifyEnabled={notifyEnabled}
+          onEnableNotifications={handleEnableNotifications}
+        />
       )}
       
       {!isLoading && resultData && parsedRepo && (

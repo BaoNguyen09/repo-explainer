@@ -29,6 +29,34 @@
   margin-top: 1rem;
 }
 
+.loading-elapsed {
+  opacity: 0.6;
+  font-size: 0.85em;
+}
+
+.notify-btn {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  background-color: var(--color-input-bg);
+  color: var(--color-text-muted);
+  border: 2px solid var(--color-border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.notify-btn:hover {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.notify-enabled-hint {
+  margin-top: 1rem;
+  font-size: 0.875rem;
+  opacity: 0.8;
+}
+
 .loading-steps {
   list-style: none;
   padding: 0;

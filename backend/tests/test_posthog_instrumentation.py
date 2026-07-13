@@ -84,7 +84,7 @@ def test_stream_pipeline_ai_failure_captures_error_event(monkeypatch):
         return "main"
 
     async def fake_get_repo_context(self, repo, status_callback=None):
-        return "some context", True, 5, 2
+        return "some context", True, 5, 2, 0
 
     async def fake_explain_repo(repo, content, instructions=None, status_callback=None):
         return "model overloaded", False

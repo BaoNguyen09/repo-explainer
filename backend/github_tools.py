@@ -391,7 +391,7 @@ class GitHubTools:
 
     async def get_repo_context(
         self, repo: RepoInfo, status_callback: Optional[Callable[[str], None]] = None
-    ) -> tuple[str, bool, int, int]:
+    ) -> tuple[str, bool, int, int, int]:
         """
         Fetch key files in the repo to get general context.
 
@@ -404,6 +404,8 @@ class GitHubTools:
             Boolean as the status of the operation
             Int count of files present in the fetched tree (for analytics)
             Int count of files actually read into the context (for analytics)
+            Int count of file fetches that failed with an exception, e.g. rate
+                limits/timeouts — 404s excluded (for analytics)
         """
         tree_file_count = 0
         try:
@@ -423,7 +425,7 @@ class GitHubTools:
             # Context #2: File content (agentic: LLM suggests paths + IMPORTANT_FILES, fetch in parallel)
             result = await self.list_directory_files(repo, "")
             if not result[1] or not result[0]:
-                return "Error with getting files at root directory", False, tree_file_count, 0
+                return "Error with getting files at root directory", False, tree_file_count, 0, 0
 
             files_at_root = set(result[0])
             root_important = [f for f in self.IMPORTANT_FILES if f in files_at_root]
@@ -436,7 +438,7 @@ class GitHubTools:
             all_paths = list(dict.fromkeys(root_important + llm_paths))[: self.MAX_FILES_TO_FETCH]
 
             if not all_paths:
-                return "No key documentation files found in root.", True, tree_file_count, 0
+                return "No key documentation files found in root.", True, tree_file_count, 0, 0
 
             if status_callback:
                 status_callback("fetching_files")
@@ -451,6 +453,7 @@ class GitHubTools:
             results = await asyncio.gather(
                 *(fetch_with_limit(p) for p in all_paths), return_exceptions=True
             )
+            files_failed_count = sum(1 for r in results if isinstance(r, BaseException))
 
             for path, result in zip(all_paths, results):
                 if isinstance(result, BaseException):
@@ -467,11 +470,11 @@ class GitHubTools:
                     context_parts.append(f"================================================\nFILE: {path}\n================================================\n{content}\n")
                     total_chars += add_len
 
-            return "\n".join(context_parts), True, tree_file_count, len(all_paths)
+            return "\n".join(context_parts), True, tree_file_count, len(all_paths), files_failed_count
 
         except Exception as e:
             utils.logger.error(f"GitHubTools.get_repo_context(): {e}")
-            return str(e), False, tree_file_count, 0
+            return str(e), False, tree_file_count, 0, 0
 
 
 # For testing
@@ -479,7 +482,7 @@ async def main():
     async with httpx.AsyncClient() as client:
         github = GitHubTools(client, github_token=None, ref=None)
         repo = RepoInfo(owner="baonguyen09", repo_name="github-second-brain")
-        content, success, _tree_file_count, _files_read_count = await github.get_repo_context(repo)
+        content, success, _tree_file_count, _files_read_count, _files_failed_count = await github.get_repo_context(repo)
         if success:
             response = await ai_service.explain_repo(repo, content)
             print(response[0])

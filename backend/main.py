@@ -36,6 +36,7 @@ def track_event(
     time_to_first_event_ms: Optional[float] = None,
     tree_file_count: Optional[int] = None,
     files_read_count: Optional[int] = None,
+    files_failed_count: Optional[int] = None,
     explanation_chars: Optional[int] = None,
     instructions_present: Optional[bool] = None,
     error_stage: Optional[str] = None,
@@ -61,6 +62,7 @@ def track_event(
                 "model": env.MODEL,
                 "tree_file_count": tree_file_count,
                 "files_read_count": files_read_count,
+                "files_failed_count": files_failed_count,
                 "explanation_chars": explanation_chars,
                 "instructions_present": instructions_present,
                 "error_stage": error_stage,
@@ -246,6 +248,7 @@ async def explain_repo(
     instructions_present = bool(instructions and instructions.strip())
     tree_file_count: Optional[int] = None
     files_read_count: Optional[int] = None
+    files_failed_count: Optional[int] = None
     explanation_chars: Optional[int] = None
     stage = "github_validation"  # advanced as the pipeline progresses; reported on error
     try:
@@ -261,7 +264,7 @@ async def explain_repo(
             github = GitHubTools(client, github_token=github_token, ref=ref)
             default_branch = await github.get_default_branch(repo_info)
             stage = "context_fetch"
-            repo_content, success, tree_file_count, files_read_count = await github.get_repo_context(repo_info)
+            repo_content, success, tree_file_count, files_read_count, files_failed_count = await github.get_repo_context(repo_info)
             if not success:
                 raise HTTPException(status_code=500, detail="Failed to fetch repository context")
 
@@ -284,6 +287,7 @@ async def explain_repo(
                 duration_ms=duration_ms,
                 tree_file_count=tree_file_count,
                 files_read_count=files_read_count,
+                files_failed_count=files_failed_count,
                 explanation_chars=explanation_chars,
                 instructions_present=instructions_present,
             )
@@ -360,6 +364,7 @@ async def _run_stream_pipeline(
     first_event_ms: Optional[float] = None
     tree_file_count: Optional[int] = None
     files_read_count: Optional[int] = None
+    files_failed_count: Optional[int] = None
     pipeline_stage = "github_validation"  # advanced as the pipeline progresses; reported on error
     try:
         async with httpx.AsyncClient() as client:
@@ -377,7 +382,7 @@ async def _run_stream_pipeline(
                 queue.put_nowait(stage)
 
             pipeline_stage = "context_fetch"
-            repo_content, success, tree_file_count, files_read_count = await github.get_repo_context(
+            repo_content, success, tree_file_count, files_read_count, files_failed_count = await github.get_repo_context(
                 repo_info, status_callback=status_callback
             )
             if not success:
@@ -420,6 +425,7 @@ async def _run_stream_pipeline(
                 time_to_first_event_ms=first_event_ms,
                 tree_file_count=tree_file_count,
                 files_read_count=files_read_count,
+                files_failed_count=files_failed_count,
                 explanation_chars=len(explanation),
                 instructions_present=instructions_present,
             )

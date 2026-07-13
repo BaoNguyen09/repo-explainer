@@ -32,13 +32,14 @@ def test_get_repo_context_survives_partial_fetch_failures(monkeypatch):
     monkeypatch.setattr(github, "get_file_contents", fake_fetch)
     monkeypatch.setattr(github_tools.ai_service, "get_files_to_explore", fake_explore)
 
-    content, success, tree_count, files_read = asyncio.run(github.get_repo_context(repo))
+    content, success, tree_count, files_read, files_failed = asyncio.run(github.get_repo_context(repo))
 
     assert success is True
     assert "content of good.py" in content
     assert "content of README.md" in content
     assert "content of bad.py" not in content
     assert files_read == 3  # attempted: README.md + good.py + bad.py
+    assert files_failed == 1  # bad.py raised; visible in analytics as files_failed_count
 
 
 def test_get_repo_context_all_fetches_fail_still_returns_tree(monkeypatch):
@@ -63,7 +64,8 @@ def test_get_repo_context_all_fetches_fail_still_returns_tree(monkeypatch):
     monkeypatch.setattr(github, "get_file_contents", fake_fetch)
     monkeypatch.setattr(github_tools.ai_service, "get_files_to_explore", fake_explore)
 
-    content, success, tree_count, files_read = asyncio.run(github.get_repo_context(repo))
+    content, success, tree_count, files_read, files_failed = asyncio.run(github.get_repo_context(repo))
 
     assert success is True
     assert "Directory structure:" in content
+    assert files_failed == 1

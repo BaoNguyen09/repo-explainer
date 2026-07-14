@@ -1,0 +1,298 @@
+.dh-screen {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: var(--color-bg-elevated);
+}
+
+.dh-header {
+  background-color: var(--color-header-bg);
+}
+
+.dh-header-row {
+  padding: 1.5rem 2rem;
+  max-width: 1280px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dh-logo-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  text-decoration: none;
+}
+
+.dh-logo-img {
+  height: 40px;
+  width: auto;
+  display: block;
+  mix-blend-mode: multiply;
+}
+
+[data-theme='dark'] .dh-logo-img {
+  mix-blend-mode: lighten;
+}
+
+.dh-logo-text {
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.dh-logo-repo {
+  color: var(--color-text-strong);
+}
+
+.dh-logo-explainer {
+  color: var(--color-accent);
+}
+
+.dh-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.dh-ph-badge {
+  display: inline-flex;
+  align-items: center;
+  line-height: 0;
+}
+
+.dh-ph-badge img {
+  display: block;
+  height: 40px;
+  width: auto;
+}
+
+.dh-icon-btn {
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  background: transparent;
+  border: 2px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: 2px 2px 0 var(--color-shadow);
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.dh-icon-btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 var(--color-shadow);
+}
+
+.dh-github-icon {
+  width: 19px;
+  height: 19px;
+}
+
+.dh-header-divider {
+  width: 100%;
+  height: 3px;
+  background-color: var(--color-divider);
+}
+
+.dh-body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6vh 24px;
+}
+
+.dh-card {
+  width: 640px;
+  max-width: 100%;
+}
+
+.dh-title {
+  font-size: 44px;
+  font-weight: 700;
+  line-height: 1.15;
+  margin: 0 0 14px 0;
+  color: var(--color-text-strong);
+  text-align: center;
+}
+
+.dh-sparkle {
+  font-size: 30px;
+  color: #10b981;
+}
+
+.dh-subtitle {
+  margin: 0 0 36px 0;
+  color: var(--color-text-muted);
+  font-size: 17px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.dh-input-row {
+  display: flex;
+  align-items: center;
+  background-color: var(--color-input-bg);
+  border: 3px solid var(--color-border);
+  border-radius: 14px;
+  box-shadow: 6px 6px 0 var(--color-shadow);
+  padding: 8px 8px 8px 22px;
+  gap: 10px;
+}
+
+.dh-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  font-size: 17px;
+  color: var(--color-text);
+  background: transparent;
+  padding: 12px 0;
+  font-family: inherit;
+}
+
+.dh-submit-btn {
+  flex-shrink: 0;
+  padding: 14px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-color: var(--color-accent);
+  color: #ffffff;
+  border: 2px solid var(--color-border);
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s, background-color 0.2s;
+}
+
+.dh-submit-btn:hover {
+  background-color: var(--color-accent-hover);
+  transform: translate(-1px, -1px);
+}
+
+.dh-instructions {
+  margin-top: 14px;
+  width: 100%;
+  padding: 14px 18px;
+  font-size: 15px;
+  font-family: inherit;
+  line-height: 1.5;
+  border: 2px solid var(--color-border);
+  border-radius: 12px;
+  background-color: var(--color-input-bg);
+  color: var(--color-text);
+  box-shadow: 4px 4px 0 var(--color-shadow);
+  resize: none;
+  box-sizing: border-box;
+}
+
+.dh-instructions-toggle-row {
+  text-align: center;
+}
+
+.dh-instructions-toggle {
+  background: none;
+  border: none;
+  padding: 12px 0 0 0;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.dh-error {
+  margin: 12px 0 0 0;
+  color: var(--color-error-text);
+  font-size: 14px;
+  text-align: center;
+}
+
+.dh-examples {
+  margin-top: 32px;
+  text-align: center;
+}
+
+.dh-examples-label {
+  margin: 0 0 12px 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.dh-examples-chips {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.dh-chip {
+  padding: 10px 18px;
+  font-size: 14px;
+  background-color: var(--color-bg);
+  color: var(--color-text-strong);
+  border: 2px solid var(--color-border);
+  border-radius: 999px;
+  box-shadow: 3px 3px 0 var(--color-shadow);
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.dh-chip:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 var(--color-shadow);
+}
+
+.dh-footer-divider {
+  width: 100%;
+  height: 3px;
+  background-color: var(--color-divider);
+}
+
+.dh-footer-content {
+  padding: 16px;
+  text-align: center;
+  background-color: var(--color-header-bg);
+}
+
+.dh-footer-content p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.dh-footer-content p + p {
+  margin-top: 6px;
+}
+
+.dh-footer-content a {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.dh-footer-content a:hover {
+  color: var(--color-accent-hover);
+}
+
+.dh-footer-brand {
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.dh-footer-build {
+  font-size: 11px;
+  opacity: 0.7;
+}

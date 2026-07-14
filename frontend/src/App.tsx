@@ -1,9 +1,6 @@
 import { useEffect, useState } from 'react';
-import './App.css';
-import { Header } from './components/Header';
-import { Footer } from './components/Footer';
-import { InputForm } from './components/InputForm';
 import { MobileApp } from './components/MobileApp';
+import { DesktopApp } from './components/DesktopApp';
 import { useIsMobileViewport } from './hooks/useIsMobileViewport';
 import { config } from './config/api';
 
@@ -34,32 +31,14 @@ function App() {
     fetch(`${config.apiUrl}/`).catch(() => {});
   }, []);
 
-  // Mobile gets its own screen-based flow instead of the desktop's single scrolling
-  // page — rendered as a distinct tree, not just CSS, so only one of the two ever
-  // opens the SSE/WebSocket connections at a time.
+  // Mobile and desktop each get their own screen-based flow, rendered as distinct
+  // trees (not just CSS), so only one of the two ever opens the SSE/WebSocket
+  // connections at a time.
   if (isMobile) {
     return <MobileApp theme={theme} onToggleTheme={toggleTheme} />;
   }
 
-  return (
-    <div className="app">
-      <Header theme={theme} onToggleTheme={toggleTheme} />
-      <main className="main-content">
-        <div className="hero-section">
-          <h1 className="main-title">
-            <span className="sparkle sparkle-left">✨</span>
-            <span className="title-text">Understand any repository</span>
-            <span className="sparkle sparkle-right">✨</span>
-          </h1>
-          <div className="description">
-            <p>Get AI explanations of any GitHub repository.</p>
-          </div>
-        </div>
-        <InputForm />
-      </main>
-      <Footer />
-    </div>
-  );
+  return <DesktopApp theme={theme} onToggleTheme={toggleTheme} />;
 }
 
 export default App;

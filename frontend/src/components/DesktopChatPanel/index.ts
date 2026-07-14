@@ -1,0 +1,1 @@
+export { DesktopChatPanel } from './DesktopChatPanel';

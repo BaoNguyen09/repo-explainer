@@ -16,8 +16,10 @@ interface MarkdownRendererProps {
    * "interactive" (default) renders mermaid blocks as the full pan/zoom diagram inline.
    * "preview" renders a static, non-interactive preview that calls onOpenDiagram when
    * tapped — used on mobile so a diagram never fights the page for scroll/pan gestures.
+   * "hidden" renders nothing for mermaid blocks — used on desktop, where the diagram is
+   * pulled out into its own rail slot instead of appearing inline in the reading column.
    */
-  mermaidMode?: 'interactive' | 'preview';
+  mermaidMode?: 'interactive' | 'preview' | 'hidden';
   onOpenDiagram?: (code: string, diagramId: string) => void;
 }
 
@@ -58,9 +60,15 @@ export function MarkdownRenderer({ content, owner, repo, branch, mermaidMode = '
                 } else if (codeChildren !== undefined && codeChildren !== null) {
                   codeString = String(codeChildren);
                 }
-                
+
                 const trimmedCode = codeString.replace(/\n$/, '');
                 return <ShellCodeBlock code={trimmedCode} language={language} />;
+              }
+
+              // A hidden mermaid block renders nothing via the code() handler below —
+              // skip the <pre> wrapper too, or it'd leave an empty bordered box behind.
+              if (language === 'mermaid' && mermaidMode === 'hidden') {
+                return null;
               }
             }
             
@@ -87,6 +95,9 @@ export function MarkdownRenderer({ content, owner, repo, branch, mermaidMode = '
 
             // Only render as Mermaid if explicitly marked as 'mermaid'
             if (language === 'mermaid') {
+              if (mermaidMode === 'hidden') {
+                return null;
+              }
               const diagramId = `diagram-${mermaidRef.current++}`;
               if (mermaidMode === 'preview') {
                 return (

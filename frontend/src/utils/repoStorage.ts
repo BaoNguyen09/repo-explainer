@@ -101,14 +101,14 @@ export function saveStoredRepoState(state: StoredRepoState): void {
   localStorage.setItem(key, JSON.stringify(state));
 }
 
-export function saveRepoOverview(result: FormResult, previousStyle: ChatStyle = 'normal'): void {
+export function saveRepoOverview(result: FormResult): void {
   saveStoredRepoState({
     version: STORAGE_VERSION,
     repo: result.repo,
     explanation: result.explanation,
     defaultBranch: result.default_branch,
     messages: [],
-    style: previousStyle,
+    style: 'caveman',
     updatedAt: new Date().toISOString(),
   });
 }

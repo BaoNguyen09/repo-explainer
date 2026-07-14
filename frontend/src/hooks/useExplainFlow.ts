@@ -223,8 +223,7 @@ export function useExplainFlow(): UseExplainFlowReturn {
         const data = JSON.parse(event.data as string) as FormResult;
         setResultData(data);
         setIsStoredOverview(false);
-        const previousStyle = loadStoredRepoState(parsed.owner, parsed.repo)?.style ?? 'normal';
-        saveRepoOverview(data, previousStyle);
+        saveRepoOverview(data);
         track('explanation_rendered', {
           owner: parsed.owner,
           repo: parsed.repo,

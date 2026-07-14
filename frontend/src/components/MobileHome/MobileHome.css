@@ -99,11 +99,6 @@
   text-align: center;
 }
 
-.mh-sparkle {
-  font-size: 24px;
-  color: #10b981;
-}
-
 .mh-subtitle {
   margin: 0 0 22px 0;
   color: var(--color-text-muted);

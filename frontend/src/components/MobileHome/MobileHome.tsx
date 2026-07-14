@@ -89,9 +89,7 @@ export function MobileHome({ theme, onToggleTheme, error, defaultQuery, onSubmit
           any repository <span className="mh-sparkle">✨</span>
         </h1>
         <p className="mh-subtitle">
-          Get AI explanations of any GitHub repository quickly.
-          <br />
-          This is useful for high-level understanding of any codebase.
+          Get AI explanations of any GitHub repository.
         </p>
 
         <form onSubmit={handleSubmit}>

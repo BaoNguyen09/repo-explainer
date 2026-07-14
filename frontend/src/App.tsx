@@ -52,8 +52,7 @@ function App() {
             <span className="sparkle sparkle-right">✨</span>
           </h1>
           <div className="description">
-            <p>Get AI explanations of any GitHub repository quickly.</p>
-            <p>This is useful for high-level understanding of any codebase.</p>
+            <p>Get AI explanations of any GitHub repository.</p>
           </div>
         </div>
         <InputForm />

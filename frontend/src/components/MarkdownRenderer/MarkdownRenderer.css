@@ -2,6 +2,11 @@
 .markdown-content {
   color: var(--color-text-strong);
   line-height: 1.7;
+  /* Long unbroken tokens (URLs, hashes) would otherwise force the container wider
+     than its flex/max-width constraints instead of wrapping. */
+  overflow-wrap: break-word;
+  word-break: break-word;
+  min-width: 0;
 }
 
 .markdown-content h1,

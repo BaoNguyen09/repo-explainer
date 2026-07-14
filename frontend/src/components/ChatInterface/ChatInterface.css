@@ -140,6 +140,11 @@
   border-radius: 10px;
   padding: 0.75rem 1rem;
   line-height: 1.5;
+  /* A flex item's default min-width:auto sizes to its content's intrinsic width,
+     which lets a long unbroken word/URL push past max-width instead of wrapping. */
+  min-width: 0;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .chat-message-user {

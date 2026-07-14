@@ -13,11 +13,12 @@ interface UseChatReturn {
   status: ChatStatus | null;
   isResponding: boolean;
   connectionState: ConnectionState;
-  style: ChatStyle;
   sendMessage: (content: string) => void;
-  setStyle: (style: ChatStyle) => void;
   clearMessages: () => void;
 }
+
+// Always caveman: shorter replies use fewer tokens, and it's no longer user-selectable.
+const CHAT_STYLE: ChatStyle = 'caveman';
 
 const PING_INTERVAL_MS = 30_000;
 const RECONNECT_BASE_MS = 1_000;
@@ -37,7 +38,6 @@ export function useChat(owner: string, repo: string, explanation: string, defaul
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [streamingMessage, setStreamingMessage] = useState('');
   const [toolEvents, setToolEvents] = useState<ChatToolEvent[]>([]);
-  const [style, setStyleState] = useState<ChatStyle>('normal');
   const [status, setStatus] = useState<ChatStatus | null>(null);
   const [isResponding, setIsResponding] = useState(false);
   const [connectionState, setConnectionState] = useState<ConnectionState>('connecting');
@@ -49,16 +49,11 @@ export function useChat(owner: string, repo: string, explanation: string, defaul
   const reconnectDelayRef = useRef(RECONNECT_BASE_MS);
   const mountedRef = useRef(true);
   const messagesRef = useRef<ChatMessage[]>([]);
-  const styleRef = useRef<ChatStyle>('normal');
   const toolEventsRef = useRef<ChatToolEvent[]>([]);
 
   useEffect(() => {
     messagesRef.current = messages;
   }, [messages]);
-
-  useEffect(() => {
-    styleRef.current = style;
-  }, [style]);
 
   useEffect(() => {
     toolEventsRef.current = toolEvents;
@@ -67,7 +62,6 @@ export function useChat(owner: string, repo: string, explanation: string, defaul
   useEffect(() => {
     const stored = loadStoredRepoState(owner, repo);
     setMessages(stored?.messages ?? []);
-    setStyleState(stored?.style ?? 'normal');
     setStreamingMessage('');
     setToolEvents([]);
     setStatus(null);
@@ -77,8 +71,8 @@ export function useChat(owner: string, repo: string, explanation: string, defaul
 
   useEffect(() => {
     if (!explanation || !hydrated) return;
-    saveStoredRepoState(createUpdatedRepoState(owner, repo, explanation, defaultBranch, messages, style));
-  }, [owner, repo, explanation, defaultBranch, messages, style, hydrated]);
+    saveStoredRepoState(createUpdatedRepoState(owner, repo, explanation, defaultBranch, messages, CHAT_STYLE));
+  }, [owner, repo, explanation, defaultBranch, messages, hydrated]);
 
   const cleanup = useCallback(() => {
     if (pingIntervalRef.current) {
@@ -258,7 +252,7 @@ export function useChat(owner: string, repo: string, explanation: string, defaul
         owner,
         repo,
         repo_full: `${owner}/${repo}`,
-        style: styleRef.current,
+        style: CHAT_STYLE,
         message_index: outboundHistory.length,
       });
 
@@ -277,17 +271,12 @@ export function useChat(owner: string, repo: string, explanation: string, defaul
           content: trimmed,
           history: outboundHistory,
           explanation,
-          style: styleRef.current,
+          style: CHAT_STYLE,
         }),
       );
     },
     [explanation, owner, repo],
   );
-
-  const setStyle = useCallback((nextStyle: ChatStyle) => {
-    styleRef.current = nextStyle;
-    setStyleState(nextStyle);
-  }, []);
 
   const clearMessages = useCallback(() => {
     setMessages([]);
@@ -304,9 +293,7 @@ export function useChat(owner: string, repo: string, explanation: string, defaul
     status,
     isResponding,
     connectionState,
-    style,
     sendMessage,
-    setStyle,
     clearMessages,
   };
 }

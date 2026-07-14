@@ -71,6 +71,7 @@
   display: flex;
   gap: 8px;
   align-items: flex-start;
+  min-width: 0;
 }
 
 .mcs-msg-user {
@@ -100,6 +101,12 @@
   border: 2px solid var(--color-border);
   font-size: 15px;
   line-height: 1.55;
+  /* Flex items default to min-width:auto (their content's intrinsic width), which
+     lets a long unbroken word/URL push the bubble past the row's max-width instead
+     of wrapping — min-width:0 lets it actually shrink to fit. */
+  min-width: 0;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .mcs-bubble-user {

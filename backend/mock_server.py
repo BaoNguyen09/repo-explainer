@@ -23,7 +23,12 @@ STAGE_DELAY_S = 0.8
 
 FAKE_EXPLANATION = """# {repo}
 
-This is a mock explanation from the local test backend — no GitHub or AI API was called.
+This is a mock explanation from the local test backend — no GitHub or AI API was called. This
+paragraph is intentionally long-winded so you can see how a realistic multi-sentence block of
+generated prose wraps and scrolls inside the overview reading column, the same way a real AI
+explanation would once it comes back from the actual pipeline instead of this canned stand-in.
+
+Here's an unbroken long token to stress-test wrapping: https://example.com/some/very/long/path/segment/that/keeps/going/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 
 ## Architecture
 
@@ -38,12 +43,24 @@ graph TD
 
 ## Tech Stack
 
-Whatever you'd like to pretend it is — this text is canned.
+Whatever you'd like to pretend it is — this text is canned. Pretend there's a long dependency
+list here too: `some-very-long-package-name-that-does-not-wrap-because-inline-code-is-often-the-culprit-for-overflow-bugs`.
 
 ## Key Directories
 
-- `src/` — mock source tree.
-- `tests/` — mock tests.
+- `src/` — mock source tree, deliberately described with more words than necessary so this list
+  item wraps across a couple of lines instead of staying short, just like real directory
+  descriptions the AI tends to write once file context is available.
+- `tests/` — mock tests, same idea, more filler text here to get a second multi-line bullet.
+- `docs/` — mock docs, with a long inline reference like `docs/architecture/decisions/0001-use-fastapi-for-the-backend-because-async-support-matters.md` to test long-code-span wrapping specifically.
+
+## Notes
+
+Repeat a longer paragraph here to make the whole page tall enough to actually scroll: Lorem
+ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et
+dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
+aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse
+cillum dolore eu fugiat nulla pariatur.
 """
 
 
@@ -104,7 +121,16 @@ async def chat(websocket: WebSocket, owner: str, repo: str):
             await websocket.send_json({"type": "status", "stage": "thinking"})
             await asyncio.sleep(0.5)
 
-            reply = f'(mock) You asked "{content}" about {owner}/{repo}. Replies here are canned.'
+            reply = (
+                f'(mock) You asked "{content}" about {owner}/{repo}. Replies here are canned, but '
+                "made deliberately long so you can check chat bubble wrapping and scrolling with "
+                "realistic-length content instead of a one-liner. A real answer would walk through "
+                "the relevant files, quote a snippet or two, and link back to the source — something "
+                "like `src/some/deeply/nested/module.py` for inline code, or a long unbroken URL such "
+                "as https://example.com/owner/repo/blob/main/some/very/long/file/path/that/keeps/going/"
+                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa "
+                "to make sure both cases wrap instead of overflowing the bubble."
+            )
             for word in reply.split(" "):
                 await websocket.send_json({"type": "chunk", "delta": word + " "})
                 await asyncio.sleep(0.03)

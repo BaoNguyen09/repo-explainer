@@ -3,7 +3,7 @@ import { useChat } from '../../hooks/useChat';
 import { track } from '../../config/analytics';
 import { clearStoredRepoMessages } from '../../utils/repoStorage';
 import { MarkdownRenderer } from '../MarkdownRenderer';
-import type { ChatMessage, ChatStyle, ChatToolEvent } from '../../types';
+import type { ChatMessage, ChatToolEvent } from '../../types';
 import './ChatInterface.css';
 
 interface ChatInterfaceProps {
@@ -37,33 +37,8 @@ function formatToolEvent(tool: string, path: string): string {
   return path ? `${tool}: ${path}` : tool;
 }
 
-function StyleButton({
-  active,
-  label,
-  title,
-  onClick,
-}: {
-  active: boolean;
-  label: string;
-  title?: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      className={`chat-style-btn${active ? ' chat-style-btn-active' : ''}`}
-      title={title}
-      aria-label={title ?? label}
-      aria-pressed={active}
-      onClick={onClick}
-    >
-      {label}
-    </button>
-  );
-}
-
 export function ChatInterface({ owner, repo, explanation, defaultBranch, embedded = false }: ChatInterfaceProps) {
-  const { messages, streamingMessage, toolEvents, status, isResponding, connectionState, style, sendMessage, setStyle, clearMessages } = useChat(
+  const { messages, streamingMessage, toolEvents, status, isResponding, connectionState, sendMessage, clearMessages } = useChat(
     owner,
     repo,
     explanation,
@@ -103,10 +78,6 @@ export function ChatInterface({ owner, repo, explanation, defaultBranch, embedde
     }
   }
 
-  function handleStyleChange(nextStyle: ChatStyle) {
-    setStyle(nextStyle);
-  }
-
   function handleClearChat() {
     clearStoredRepoMessages(owner, repo);
     clearMessages();
@@ -130,15 +101,6 @@ export function ChatInterface({ owner, repo, explanation, defaultBranch, embedde
         </div>
 
         <div className="chat-controls">
-          <div className="chat-style-group" role="group" aria-label="Chat style">
-            <StyleButton active={style === 'normal'} label="Normal" onClick={() => handleStyleChange('normal')} />
-            <StyleButton
-              active={style === 'caveman'}
-              label="Caveman"
-              title="Ultra-brief mode. Keeps technical meaning, cuts filler and extra words."
-              onClick={() => handleStyleChange('caveman')}
-            />
-          </div>
           <button type="button" className="chat-clear-btn" onClick={handleClearChat}>
             Clear chat
           </button>

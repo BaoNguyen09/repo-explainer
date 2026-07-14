@@ -46,17 +46,6 @@
   flex-wrap: wrap;
 }
 
-.chat-style-group {
-  display: inline-flex;
-  gap: 0.35rem;
-  padding: 0.25rem;
-  border: 2px solid var(--color-border);
-  border-radius: 10px;
-  background-color: var(--color-bg);
-  box-shadow: 3px 3px 0 var(--color-shadow);
-}
-
-.chat-style-btn,
 .chat-clear-btn {
   border: 2px solid var(--color-border);
   border-radius: 8px;
@@ -65,23 +54,10 @@
   cursor: pointer;
   font: inherit;
   transition: transform 0.1s, box-shadow 0.1s, background-color 0.2s;
-}
-
-.chat-style-btn {
-  padding: 0.35rem 0.8rem;
-}
-
-.chat-style-btn-active {
-  background-color: var(--color-accent);
-  color: white;
-}
-
-.chat-clear-btn {
   padding: 0.45rem 0.9rem;
   box-shadow: 3px 3px 0 var(--color-shadow);
 }
 
-.chat-style-btn:hover,
 .chat-clear-btn:hover {
   transform: translate(-1px, -1px);
 }
@@ -140,6 +116,11 @@
   border-radius: 10px;
   padding: 0.75rem 1rem;
   line-height: 1.5;
+  /* A flex item's default min-width:auto sizes to its content's intrinsic width,
+     which lets a long unbroken word/URL push past max-width instead of wrapping. */
+  min-width: 0;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .chat-message-user {

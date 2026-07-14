@@ -86,7 +86,7 @@ export function MobileHome({ theme, onToggleTheme, error, defaultQuery, onSubmit
         <h1 className="mh-title">
           Understand
           <br />
-          any repository <span className="mh-sparkle">✨</span>
+          any repository
         </h1>
         <p className="mh-subtitle">
           Get AI explanations of any GitHub repository.

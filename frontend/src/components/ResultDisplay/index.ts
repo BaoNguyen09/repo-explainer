@@ -1,3 +1,0 @@
-export { ResultDisplay } from './ResultDisplay';
-
-

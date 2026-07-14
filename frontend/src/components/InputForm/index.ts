@@ -1,3 +1,0 @@
-export { InputForm } from './InputForm';
-
-

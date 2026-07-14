@@ -20,7 +20,7 @@ const EXAMPLE_REPOS: ExampleRepo[] = [
 const PRODUCT_HUNT_URL =
   'https://www.producthunt.com/products/repo-explainer?utm_source=badge-follow&utm_medium=badge&utm_campaign=badge-repo-explainer';
 
-// Set at build time by CI, same as the old Footer.
+// Set at build time by CI.
 const buildSha = import.meta.env.VITE_GIT_SHA as string | undefined;
 const appVersion = import.meta.env.VITE_APP_VERSION as string | undefined;
 
@@ -102,9 +102,7 @@ export function DesktopHome({ theme, onToggleTheme, error, defaultQuery, onSubmi
             Understand any repository <span className="dh-sparkle">✨</span>
           </h1>
           <p className="dh-subtitle">
-            Get AI explanations of any GitHub repository quickly.
-            <br />
-            This is useful for high-level understanding of any codebase.
+            Get AI explanations of any GitHub repository.
           </p>
 
           <form onSubmit={handleSubmit}>

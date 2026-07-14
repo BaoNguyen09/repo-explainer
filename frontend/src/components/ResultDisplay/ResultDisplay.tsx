@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { FiCopy, FiDownload, FiCheck } from 'react-icons/fi';
 import { MarkdownRenderer } from '../MarkdownRenderer';
+import { downloadTextFile } from '../../utils/downloadText';
 import type { FormResult } from '../../types';
 import './ResultDisplay.css';
 
@@ -33,15 +34,7 @@ export function ResultDisplay({ data, embedded = false }: ResultDisplayProps) {
 
   const handleDownload = () => {
     try {
-      const blob = new Blob([data.explanation], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `repo-explanation-${data.repo.replace('/', '-')}.txt`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      downloadTextFile(data.explanation, `repo-explanation-${data.repo.replace('/', '-')}.txt`);
     } catch (error) {
       console.error('Failed to download:', error);
       alert('Failed to download file');

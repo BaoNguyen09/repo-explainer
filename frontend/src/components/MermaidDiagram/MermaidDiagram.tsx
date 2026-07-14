@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef } from 'react';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
+import type { ReactZoomPanPinchRef } from 'react-zoom-pan-pinch';
 import { FiZoomIn, FiZoomOut, FiMaximize2, FiCopy, FiDownload, FiFile } from 'react-icons/fi';
-import mermaid from 'mermaid';
-import { initializeMermaid } from '../../utils/mermaidInit';
+import { useMermaidRender } from '../../hooks/useMermaidRender';
+import { copyMermaidSvg, downloadMermaidPng, downloadMermaidSvg } from '../../utils/mermaidExport';
 import './MermaidDiagram.css';
 
 interface MermaidDiagramProps {
@@ -11,181 +12,9 @@ interface MermaidDiagramProps {
 }
 
 export function MermaidDiagram({ code, diagramId }: MermaidDiagramProps) {
-  const [svgContent, setSvgContent] = useState<string>('');
-  const [isRendered, setIsRendered] = useState(false);
+  const { svgContent, isRendered } = useMermaidRender(code, diagramId);
   const containerRef = useRef<HTMLDivElement>(null);
-  const transformRef = useRef<any>(null);
-
-  useEffect(() => {
-    if (!code || !code.trim()) return;
-    if (isRendered) return;
-
-    let isMounted = true;
-
-    const renderDiagram = async () => {
-      try {
-        initializeMermaid();
-
-        const id = `mermaid-${diagramId}-${Date.now()}`;
-        const result = await mermaid.render(id, code.trim());
-        
-        if (!isMounted) return;
-        
-        if (result && result.svg) {
-          setSvgContent(result.svg);
-          setIsRendered(true);
-          // Center the diagram after rendering
-          setTimeout(() => {
-            if (transformRef.current) {
-              transformRef.current.centerView(1, 0);
-            }
-          }, 300);
-        } else {
-          throw new Error('Mermaid returned empty result');
-        }
-      } catch (error) {
-        if (!isMounted) return;
-        
-        console.error('Mermaid rendering error:', error);
-        const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-        setSvgContent(`<div style="padding: 2rem; color: #c33;"><pre>Error rendering diagram: ${errorMsg}\n\nCode:\n${code.substring(0, 200)}...</pre></div>`);
-        setIsRendered(true);
-      }
-    };
-
-    renderDiagram();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [code, diagramId, isRendered]);
-
-  const handleCopy = async () => {
-    if (!svgContent) return;
-    
-    try {
-      // Copy SVG as text
-      await navigator.clipboard.writeText(svgContent);
-      alert('Diagram copied to clipboard!');
-    } catch (error) {
-      console.error('Failed to copy:', error);
-      alert('Failed to copy diagram');
-    }
-  };
-
-  const handleExport = (format: 'svg' | 'png') => {
-    if (!svgContent) return;
-
-    if (format === 'svg') {
-      const blob = new Blob([svgContent], { type: 'image/svg+xml' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `diagram-${diagramId}.svg`;
-      link.click();
-      URL.revokeObjectURL(url);
-    } else if (format === 'png') {
-      // Convert SVG to PNG using the raw SVG content
-      try {
-        // Parse the SVG string to extract dimensions
-        const parser = new DOMParser();
-        const svgDoc = parser.parseFromString(svgContent, 'image/svg+xml');
-        const svgElement = svgDoc.querySelector('svg');
-        
-        if (!svgElement) {
-          alert('Could not parse SVG content');
-          return;
-        }
-
-        // Extract dimensions from viewBox or width/height attributes
-        let width = 1200;
-        let height = 800;
-        
-        const viewBox = svgElement.getAttribute('viewBox');
-        if (viewBox) {
-          const parts = viewBox.split(/\s+/);
-          if (parts.length >= 4) {
-            width = parseFloat(parts[2]) || width;
-            height = parseFloat(parts[3]) || height;
-          }
-        } else {
-          const svgWidth = svgElement.getAttribute('width');
-          const svgHeight = svgElement.getAttribute('height');
-          if (svgWidth) width = parseFloat(svgWidth.replace(/px|em|rem/, '')) || width;
-          if (svgHeight) height = parseFloat(svgHeight.replace(/px|em|rem/, '')) || height;
-        }
-
-        // Ensure SVG has explicit dimensions
-        svgElement.setAttribute('width', width.toString());
-        svgElement.setAttribute('height', height.toString());
-        svgElement.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-
-        // Serialize the SVG
-        const svgData = new XMLSerializer().serializeToString(svgElement);
-        
-        // Create image and canvas
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        
-        if (!ctx) {
-          alert('Canvas context not available');
-          return;
-        }
-
-        const img = new Image();
-        
-        // Use data URL instead of blob URL to avoid CORS issues
-        // Encode SVG as base64 data URL
-        const svgBase64 = btoa(unescape(encodeURIComponent(svgData)));
-        const dataUrl = `data:image/svg+xml;base64,${svgBase64}`;
-
-        img.onload = () => {
-          try {
-            // Set canvas dimensions
-            canvas.width = width;
-            canvas.height = height;
-            
-            // Fill white background
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            // Draw the SVG image
-            ctx.drawImage(img, 0, 0, width, height);
-            
-            // Convert canvas to blob and trigger download
-            canvas.toBlob((blob) => {
-              if (blob) {
-                const downloadUrl = URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = downloadUrl;
-                link.download = `diagram-${diagramId}.png`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(downloadUrl);
-              } else {
-                alert('Failed to create PNG blob');
-              }
-            }, 'image/png', 1.0);
-          } catch (error) {
-            console.error('Error converting to PNG:', error);
-            alert('Failed to convert diagram to PNG: ' + (error instanceof Error ? error.message : 'Unknown error'));
-          }
-        };
-
-        img.onerror = () => {
-          console.error('Failed to load SVG image');
-          alert('Failed to load SVG for PNG conversion');
-        };
-
-        // Set image source using data URL (no CORS issues)
-        img.src = dataUrl;
-      } catch (error) {
-        console.error('PNG export error:', error);
-        alert('Failed to export diagram as PNG: ' + (error instanceof Error ? error.message : 'Unknown error'));
-      }
-    }
-  };
+  const transformRef = useRef<ReactZoomPanPinchRef | null>(null);
 
   if (!isRendered) {
     return (
@@ -204,7 +33,7 @@ export function MermaidDiagram({ code, diagramId }: MermaidDiagramProps) {
         <div className="mermaid-controls-right">
           <button
             className="mermaid-control-btn"
-            onClick={handleCopy}
+            onClick={() => copyMermaidSvg(svgContent)}
             title="Copy diagram"
             aria-label="Copy diagram"
           >
@@ -212,7 +41,7 @@ export function MermaidDiagram({ code, diagramId }: MermaidDiagramProps) {
           </button>
           <button
             className="mermaid-control-btn"
-            onClick={() => handleExport('svg')}
+            onClick={() => downloadMermaidSvg(svgContent, diagramId)}
             title="Export as SVG"
             aria-label="Export as SVG"
           >
@@ -220,7 +49,7 @@ export function MermaidDiagram({ code, diagramId }: MermaidDiagramProps) {
           </button>
           <button
             className="mermaid-control-btn"
-            onClick={() => handleExport('png')}
+            onClick={() => downloadMermaidPng(svgContent, diagramId)}
             title="Export as PNG"
             aria-label="Export as PNG"
           >
@@ -294,4 +123,3 @@ export function MermaidDiagram({ code, diagramId }: MermaidDiagramProps) {
     </div>
   );
 }
-

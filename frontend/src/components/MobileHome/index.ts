@@ -1,0 +1,1 @@
+export { MobileHome } from './MobileHome';

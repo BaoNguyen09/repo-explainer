@@ -3,6 +3,8 @@ import './App.css';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { InputForm } from './components/InputForm';
+import { MobileApp } from './components/MobileApp';
+import { useIsMobileViewport } from './hooks/useIsMobileViewport';
 import { config } from './config/api';
 
 const THEME_STORAGE_KEY = 'repo-explainer-theme';
@@ -16,6 +18,7 @@ function getInitialTheme(): Theme {
 
 function App() {
   const [theme, setTheme] = useState<Theme>(getInitialTheme);
+  const isMobile = useIsMobileViewport();
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -30,6 +33,13 @@ function App() {
   useEffect(() => {
     fetch(`${config.apiUrl}/`).catch(() => {});
   }, []);
+
+  // Mobile gets its own screen-based flow instead of the desktop's single scrolling
+  // page — rendered as a distinct tree, not just CSS, so only one of the two ever
+  // opens the SSE/WebSocket connections at a time.
+  if (isMobile) {
+    return <MobileApp theme={theme} onToggleTheme={toggleTheme} />;
+  }
 
   return (
     <div className="app">

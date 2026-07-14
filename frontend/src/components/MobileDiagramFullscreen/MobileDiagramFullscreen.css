@@ -1,0 +1,120 @@
+.mdf-screen {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  background-color: var(--color-bg);
+}
+
+.mdf-app-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 3px solid var(--color-divider);
+  background-color: var(--color-bg-elevated);
+  flex-shrink: 0;
+}
+
+.mdf-title-block {
+  min-width: 0;
+}
+
+.mdf-title {
+  font-weight: 700;
+  color: var(--color-text-strong);
+  font-size: 15px;
+}
+
+.mdf-meta {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.mdf-close-btn {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  background-color: var(--color-bg);
+  border: 2px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: 2px 2px 0 var(--color-shadow);
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.mdf-canvas {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: repeating-linear-gradient(
+    45deg,
+    var(--color-bg),
+    var(--color-bg) 12px,
+    var(--color-bg-elevated) 12px,
+    var(--color-bg-elevated) 24px
+  );
+}
+
+.mdf-loading {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.mdf-transform-wrapper {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.mdf-transform-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mdf-zoom-controls {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mdf-zoom-btn {
+  width: 44px;
+  height: 44px;
+  background-color: var(--color-bg);
+  border: 2px solid var(--color-border);
+  border-radius: 10px;
+  box-shadow: 3px 3px 0 var(--color-shadow);
+  font-size: 18px;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.mdf-action-bar {
+  display: flex;
+  gap: 10px;
+  padding: 14px 16px;
+  border-top: 3px solid var(--color-divider);
+  background-color: var(--color-bg-elevated);
+  flex-shrink: 0;
+}
+
+.mdf-action-btn {
+  flex: 1;
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  border: 2px solid var(--color-border);
+  border-radius: 10px;
+  box-shadow: 3px 3px 0 var(--color-shadow);
+  font-family: inherit;
+  cursor: pointer;
+}

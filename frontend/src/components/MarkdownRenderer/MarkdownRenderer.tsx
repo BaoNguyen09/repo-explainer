@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { MermaidDiagram } from '../MermaidDiagram';
+import { MermaidDiagramPreview } from '../MermaidDiagram/MermaidDiagramPreview';
 import { ShellCodeBlock } from '../ShellCodeBlock';
 import { linkifyRepoPaths } from '../../utils/linkifyRepoPaths';
 import './MarkdownRenderer.css';
@@ -11,9 +12,16 @@ interface MarkdownRendererProps {
   owner?: string;
   repo?: string;
   branch?: string;
+  /**
+   * "interactive" (default) renders mermaid blocks as the full pan/zoom diagram inline.
+   * "preview" renders a static, non-interactive preview that calls onOpenDiagram when
+   * tapped — used on mobile so a diagram never fights the page for scroll/pan gestures.
+   */
+  mermaidMode?: 'interactive' | 'preview';
+  onOpenDiagram?: (code: string, diagramId: string) => void;
 }
 
-export function MarkdownRenderer({ content, owner, repo, branch }: MarkdownRendererProps) {
+export function MarkdownRenderer({ content, owner, repo, branch, mermaidMode = 'interactive', onOpenDiagram }: MarkdownRendererProps) {
   const mermaidRef = useRef<number>(0);
   const renderedContent = linkifyRepoPaths(content, owner, repo, branch);
 
@@ -80,6 +88,15 @@ export function MarkdownRenderer({ content, owner, repo, branch }: MarkdownRende
             // Only render as Mermaid if explicitly marked as 'mermaid'
             if (language === 'mermaid') {
               const diagramId = `diagram-${mermaidRef.current++}`;
+              if (mermaidMode === 'preview') {
+                return (
+                  <MermaidDiagramPreview
+                    code={trimmedCode}
+                    diagramId={diagramId}
+                    onOpenFullscreen={() => onOpenDiagram?.(trimmedCode, diagramId)}
+                  />
+                );
+              }
               return (
                 <MermaidDiagram code={trimmedCode} diagramId={diagramId} />
               );

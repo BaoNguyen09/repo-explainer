@@ -1,289 +1,42 @@
-import { useState, useRef, useEffect } from 'react';
-import { parseGitHubUrl } from '../../utils/parseGitHubUrl';
-import type { FormResult } from '../../types';
+import { useRef } from 'react';
 import { LoadingSpinner } from '../LoadingSpinner';
 import { RepoWorkspace } from '../RepoWorkspace';
-import { config } from '../../config/api';
-import { track, getDistinctId } from '../../config/analytics';
-import { loadStoredRepoState, saveRepoOverview } from '../../utils/repoStorage';
+import { useExplainFlow } from '../../hooks/useExplainFlow';
+import { useAutoSubmitFromPath } from '../../hooks/useAutoSubmitFromPath';
+import { parseGitHubUrl } from '../../utils/parseGitHubUrl';
 import './InputForm.css';
 
-/**
- * Parse pathname like "/owner/repo" into { owner, repo }.
- * Used when user lands on e.g. repex.thienbao.dev/facebook/react (e.g. from extension).
- * Strips Vite base URL (e.g. / or /repo-explainer/) so it works with any deployment path.
- */
-function parsePathRepo(pathname: string): { owner: string; repo: string } | null {
-  const base = (import.meta.env.BASE_URL ?? '/').replace(/\/$/, '') || '';
-  const pathWithoutBase = base ? pathname.slice(base.length) || '/' : pathname;
-  const normalized = pathWithoutBase.startsWith('/') ? pathWithoutBase : `/${pathWithoutBase}`;
-  const segments = normalized.split('/').filter(Boolean);
-  if (segments.length !== 2) return null;
-  const [owner, repo] = segments;
-  if (!owner || !repo) return null;
-  return { owner, repo };
-}
-
-const STAGE_MESSAGES: Record<string, string> = {
-  validating: 'Validating repository...',
-  fetching_tree: 'Fetching directory structure...',
-  exploring_files: 'AI is exploring which files to read...',
-  fetching_files: 'Fetching file contents...',
-  generating_explanation: 'Generating explanation...',
-};
-
-function getMessageForStage(stage: string): string {
-  return STAGE_MESSAGES[stage] ?? stage;
-}
-
 export function InputForm() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [resultData, setResultData] = useState<FormResult | null>(null);
-  const [isStoredOverview, setIsStoredOverview] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const [completedSteps, setCompletedSteps] = useState<string[]>([]);
-  const [parsedRepo, setParsedRepo] = useState<{ owner: string; repo: string } | null>(null);
-  const [notifyEnabled, setNotifyEnabled] = useState(false);
+  const {
+    isLoading,
+    resultData,
+    isStoredOverview,
+    error,
+    statusMessage,
+    completedSteps,
+    parsedRepo,
+    notifyEnabled,
+    notifySupported,
+    submit,
+    regenerate,
+    enableNotifications,
+  } = useExplainFlow();
   const inputRef = useRef<HTMLInputElement>(null);
   const instructionsRef = useRef<HTMLTextAreaElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
-  const hasAutoSubmittedRef = useRef(false);
-  const gotResultRef = useRef(false);
-  const failureTrackedRef = useRef(false);
-  const forceRegenerateRef = useRef(false);
-  // Ref mirror of notifyEnabled so the SSE handlers (captured at submit time) always
-  // see the latest opt-in state, even if the user enables notifications mid-request.
-  const notifyEnabledRef = useRef(false);
 
   // When URL path is /owner/repo (e.g. from extension), prefill form and auto-submit once
-  useEffect(() => {
-    if (hasAutoSubmittedRef.current) return;
-    const { pathname, search } = window.location;
-    const parsed = parsePathRepo(pathname);
-    if (!parsed || !inputRef.current || !formRef.current) return;
-
-    hasAutoSubmittedRef.current = true;
-    inputRef.current.value = `https://github.com/${parsed.owner}/${parsed.repo}`;
-    setParsedRepo(parsed);
-
-    const params = new URLSearchParams(search);
-    const instructions = params.get('instructions');
-    if (instructions && instructionsRef.current) {
-      instructionsRef.current.value = instructions;
-    }
-
-    if (!instructions) {
-      const stored = loadStoredRepoState(parsed.owner, parsed.repo);
-      if (stored) {
-        setResultData({
-          explanation: stored.explanation,
-          repo: stored.repo,
-          timestamp: stored.updatedAt,
-          cache: true,
-          default_branch: stored.defaultBranch,
-        });
-        setIsStoredOverview(true);
-        track('explanation_viewed_from_cache', {
-          owner: parsed.owner,
-          repo: parsed.repo,
-          repo_full: `${parsed.owner}/${parsed.repo}`,
-        });
-        return;
-      }
-    }
-
-    formRef.current.requestSubmit();
-  }, []);
-
-  // Permission must be requested from a user gesture (the button click) — Chrome
-  // silently blocks/auto-dismisses prompts triggered any other way.
-  const handleEnableNotifications = () => {
-    if (!('Notification' in window) || Notification.permission === 'denied') return;
-    Notification.requestPermission().then((permission) => {
-      if (permission !== 'granted') return;
-      notifyEnabledRef.current = true;
-      setNotifyEnabled(true);
-      if (parsedRepo) {
-        track('notification_opt_in', {
-          owner: parsedRepo.owner,
-          repo: parsedRepo.repo,
-          repo_full: `${parsedRepo.owner}/${parsedRepo.repo}`,
-        });
-      }
-    });
-  };
-
-  // Only notify if the user opted in and has actually tabbed away — a visible tab
-  // already shows the result, so a notification there would just be noise.
-  const notifyIfHidden = (title: string) => {
-    if (!notifyEnabledRef.current || document.visibilityState !== 'hidden') return;
-    if (!('Notification' in window) || Notification.permission !== 'granted') return;
-    const notification = new Notification(title);
-    notification.onclick = () => {
-      window.focus();
-      notification.close();
-    };
-  };
+  useAutoSubmitFromPath(submit, (query, instructions) => {
+    if (inputRef.current) inputRef.current.value = query;
+    if (instructions && instructionsRef.current) instructionsRef.current.value = instructions;
+  });
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setError(null);
-    setStatusMessage(null);
-    setCompletedSteps([]);
-    gotResultRef.current = false;
-    failureTrackedRef.current = false;
-
     const formData = new FormData(e.currentTarget);
     const query = formData.get('query') as string;
-    if (!query || !query.trim()) {
-      setError('Please enter a GitHub repository URL');
-      setIsLoading(false);
-      return;
-    }
-
-    const parsed = parseGitHubUrl(query);
-    if (!parsed) {
-      setError('Invalid GitHub URL format. Please use: https://github.com/owner/repo or owner/repo');
-      setIsLoading(false);
-      return;
-    }
-
-    setParsedRepo({ owner: parsed.owner, repo: parsed.repo });
-    track('repo_submitted', {
-      owner: parsed.owner,
-      repo: parsed.repo,
-      repo_full: `${parsed.owner}/${parsed.repo}`,
-    });
-
     const instructions = formData.get('instructions') as string;
-    const instructionsTrimmed = instructions?.trim() || '';
-
-    if (!instructionsTrimmed && !forceRegenerateRef.current) {
-      const stored = loadStoredRepoState(parsed.owner, parsed.repo);
-      if (stored) {
-        setResultData({
-          explanation: stored.explanation,
-          repo: stored.repo,
-          timestamp: stored.updatedAt,
-          cache: true,
-          default_branch: stored.defaultBranch,
-        });
-        setIsStoredOverview(true);
-        setIsLoading(false);
-        track('explanation_viewed_from_cache', {
-          owner: parsed.owner,
-          repo: parsed.repo,
-          repo_full: `${parsed.owner}/${parsed.repo}`,
-        });
-        return;
-      }
-    }
-
-    setIsLoading(true);
-    setResultData(null);
-    setIsStoredOverview(false);
-    // EventSource cannot set headers, so identity travels as a query param.
-    const streamParams = new URLSearchParams();
-    if (instructionsTrimmed) {
-      streamParams.set('instructions', instructionsTrimmed);
-    }
-    const distinctId = getDistinctId();
-    if (distinctId) {
-      streamParams.set('distinct_id', distinctId);
-    }
-    const queryString = streamParams.toString();
-    const url = `${config.apiUrl}/${parsed.owner}/${parsed.repo}/stream${queryString ? `?${queryString}` : ''}`;
-    forceRegenerateRef.current = false;
-
-    const es = new EventSource(url);
-
-    // A native connection error fires both the 'error' listener and es.onerror,
-    // so guard against capturing explanation_failed twice for one submission.
-    const trackFailure = (source: string, detail?: string) => {
-      if (failureTrackedRef.current) return;
-      failureTrackedRef.current = true;
-      track('explanation_failed', {
-        owner: parsed.owner,
-        repo: parsed.repo,
-        repo_full: `${parsed.owner}/${parsed.repo}`,
-        source,
-        detail: detail ? detail.slice(0, 200) : undefined,
-      });
-    };
-
-    es.addEventListener('status', (event: MessageEvent) => {
-      try {
-        const data = JSON.parse(event.data as string) as { stage?: string };
-        const stage = data?.stage;
-        if (stage) {
-          const msg = getMessageForStage(stage);
-          setCompletedSteps((prev) =>
-            prev[prev.length - 1] === msg ? prev : [...prev, msg]
-          );
-          setStatusMessage(msg);
-        }
-      } catch {
-        // ignore parse errors
-      }
-    });
-
-    es.addEventListener('result', (event: MessageEvent) => {
-      gotResultRef.current = true;
-      try {
-        const data = JSON.parse(event.data as string) as FormResult;
-        setResultData(data);
-        setIsStoredOverview(false);
-        const previousStyle = loadStoredRepoState(parsed.owner, parsed.repo)?.style ?? 'normal';
-        saveRepoOverview(data, previousStyle);
-        track('explanation_rendered', {
-          owner: parsed.owner,
-          repo: parsed.repo,
-          repo_full: `${parsed.owner}/${parsed.repo}`,
-        });
-        notifyIfHidden('Your repo explanation is ready ✅');
-      } catch {
-        setError('Invalid response from server');
-        trackFailure('invalid_response');
-        notifyIfHidden('Your repo explanation failed ❌');
-      }
-      es.close();
-      setIsLoading(false);
-      setStatusMessage(null);
-      setCompletedSteps([]);
-    });
-
-    es.addEventListener('error', (event: MessageEvent) => {
-      try {
-        if (event.data) {
-          const data = JSON.parse(event.data as string) as { detail?: string };
-          if (data?.detail) {
-            setError(data.detail);
-            trackFailure('server_error', data.detail);
-          }
-        }
-      } catch {
-        setError('Connection lost or server error');
-        trackFailure('server_error');
-      }
-      notifyIfHidden('Your repo explanation failed ❌');
-      es.close();
-      setIsLoading(false);
-      setStatusMessage(null);
-      setCompletedSteps([]);
-    });
-
-    es.onerror = () => {
-      if (!gotResultRef.current) {
-        setError((prev) => prev || 'Connection lost or server error');
-        trackFailure('connection_lost');
-        notifyIfHidden('Your repo explanation failed ❌');
-      }
-      es.close();
-      setIsLoading(false);
-      setStatusMessage(null);
-      setCompletedSteps([]);
-    };
+    submit(query, instructions);
   }
 
   const handleTryExample = (repo: string) => {
@@ -307,12 +60,6 @@ export function InputForm() {
     if (parsed) {
       window.open(`https://github.com/${parsed.owner}/${parsed.repo}`, '_blank', 'noopener,noreferrer');
     }
-  };
-
-  const handleRegenerate = () => {
-    if (!formRef.current || isLoading) return;
-    forceRegenerateRef.current = true;
-    formRef.current.requestSubmit();
   };
 
   const exampleRepos = [
@@ -420,19 +167,19 @@ export function InputForm() {
         <LoadingSpinner
           message={statusMessage}
           completedSteps={completedSteps}
-          notifySupported={'Notification' in window && Notification.permission !== 'denied'}
+          notifySupported={notifySupported}
           notifyEnabled={notifyEnabled}
-          onEnableNotifications={handleEnableNotifications}
+          onEnableNotifications={enableNotifications}
         />
       )}
-      
+
       {!isLoading && resultData && parsedRepo && (
         <RepoWorkspace
           data={resultData}
           owner={parsedRepo.owner}
           repo={parsedRepo.repo}
           isStoredOverview={isStoredOverview}
-          onRegenerate={handleRegenerate}
+          onRegenerate={regenerate}
         />
       )}
     </div>

@@ -1,0 +1,93 @@
+.mermaid-preview-card {
+  margin: 0.75rem 0;
+  border: 2px solid var(--color-border);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 4px 4px 0 var(--color-shadow);
+  background-color: var(--color-bg);
+}
+
+.mermaid-preview-canvas {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 180px;
+  padding: 12px;
+  border: none;
+  cursor: pointer;
+  background: repeating-linear-gradient(
+    45deg,
+    var(--color-bg),
+    var(--color-bg) 12px,
+    var(--color-bg-elevated) 12px,
+    var(--color-bg-elevated) 24px
+  );
+  font-family: inherit;
+}
+
+.mermaid-preview-svg {
+  max-width: 100%;
+  max-height: 100%;
+  overflow: hidden;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Deliberately only cap max-width and set height:auto — leaving the SVG's own
+   width="100%" attribute in effect is what lets the browser derive the height
+   from its viewBox aspect ratio. Setting width:auto here collapses it to 0x0. */
+.mermaid-preview-svg svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+}
+
+.mermaid-preview-loading {
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  background-color: var(--color-bg);
+  padding: 6px 10px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 4px;
+}
+
+.mermaid-preview-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background-color: var(--color-bg-elevated);
+  border-top: 2px solid var(--color-border);
+}
+
+.mermaid-preview-label {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.mermaid-preview-fullscreen-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  background-color: var(--color-accent);
+  color: #ffffff;
+  border: 2px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: 2px 2px 0 var(--color-shadow);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.mermaid-preview-fullscreen-btn:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 var(--color-shadow);
+}

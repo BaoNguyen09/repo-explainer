@@ -19,3 +19,6 @@ class ModelResponse(BaseModel):
     timestamp: datetime
     cache: bool
     default_branch: str
+
+class SuggestedQuestionsRequest(BaseModel):
+    explanation: str

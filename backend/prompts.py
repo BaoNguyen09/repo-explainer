@@ -64,6 +64,32 @@ def parse_paths_from_response(text: str) -> List[str]:
             out.append(line)
     return out
 
+SUGGEST_QUESTIONS_SYSTEM = """You suggest exactly 3 short, specific questions a developer could ask next about a codebase, based on the explanation given. Return ONLY the 3 questions, one per line. No numbering, no bullets, no extra text."""
+
+SUGGEST_QUESTIONS_USER_TEMPLATE = """Repository explanation:
+
+{explanation}
+
+Give 3 short, specific follow-up questions a developer would want to ask about this repository."""
+
+
+def build_suggest_questions_user(explanation: str) -> str:
+    """Build user prompt for the suggested-questions LLM call."""
+    return SUGGEST_QUESTIONS_USER_TEMPLATE.format(explanation=explanation)
+
+
+def parse_questions_from_response(text: str) -> List[str]:
+    """Parse LLM response into up to 3 question strings, stripping numbering/bullets."""
+    if not text or not text.strip():
+        return []
+    out = []
+    for line in text.strip().splitlines():
+        line = re.sub(r"^[\-\*\d\.\)]+\s*", "", line.strip()).strip()
+        if line:
+            out.append(line)
+    return out[:3]
+
+
 SYSTEM_PROMPT = """You are a staff software engineer. Explain GitHub repositories 
 clearly and thoroughly for curious developers who want to deeply understand the codebase.
 Produce the answer in Markdown format.

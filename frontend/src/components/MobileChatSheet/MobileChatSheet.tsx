@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useChat } from '../../hooks/useChat';
+import { useSuggestedQuestions } from '../../hooks/useSuggestedQuestions';
 import { track } from '../../config/analytics';
 import { MarkdownRenderer } from '../MarkdownRenderer';
 import './MobileChatSheet.css';
@@ -12,8 +13,6 @@ interface MobileChatSheetProps {
   onClose: () => void;
   onOpenDiagram: (code: string, diagramId: string) => void;
 }
-
-const SUGGESTIONS = ['How does routing work?', 'Where is auth handled?', 'Explain the test setup'];
 
 const INTRO_TEXT =
   "I've read the overview of this repo. Ask me anything — files, flows, setup, or implementation details.";
@@ -28,6 +27,7 @@ export function MobileChatSheet({ owner, repo, explanation, defaultBranch, onClo
   const [input, setInput] = useState('');
   const threadEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const suggestions = useSuggestedQuestions(owner, repo, explanation);
 
   const isThinking = (isResponding || status !== null) && !streamingMessage;
   const canSend = input.trim().length > 0 && !isResponding && connectionState === 'open';
@@ -142,7 +142,7 @@ export function MobileChatSheet({ owner, repo, explanation, defaultBranch, onClo
         <div className="mcs-composer">
           {messages.length === 0 && (
             <div className="mcs-suggestions">
-              {SUGGESTIONS.map((s) => (
+              {suggestions.map((s) => (
                 <button key={s} type="button" className="mcs-suggestion-chip" onClick={() => setInput(s)}>
                   {s}
                 </button>

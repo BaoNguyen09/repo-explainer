@@ -19,7 +19,7 @@ from backend import GitHubTools
 from backend import ai_service
 from backend import chat_service
 from backend import env, utils
-from backend.schema import ModelResponse, RepoInfo
+from backend.schema import ModelResponse, RepoInfo, SuggestedQuestionsRequest
 
 # —— PostHog analytics (no-op when API key is absent) ——
 posthog_client: Posthog | None = None
@@ -541,6 +541,22 @@ async def _stream_generator(
             await task
         except asyncio.CancelledError:
             pass
+
+
+@app.post("/{owner}/{repo}/suggested-questions")
+@limiter.limit("60/day")
+async def suggested_questions(
+    request: Request,
+    owner: str,
+    repo: str,
+    body: SuggestedQuestionsRequest,
+):
+    """Suggest 3 short follow-up questions for a repo's chat, based on its explanation."""
+    explanation = (body.explanation or "").strip()
+    if not explanation:
+        raise HTTPException(status_code=400, detail="Explanation is required.")
+    questions = await ai_service.suggest_questions(explanation)
+    return {"questions": questions}
 
 
 @app.websocket("/{owner}/{repo}/chat")

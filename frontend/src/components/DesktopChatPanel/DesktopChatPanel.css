@@ -179,7 +179,7 @@
 
 .dcp-input-row {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   background-color: var(--color-input-bg);
   border: 2px solid var(--color-border);
   border-radius: 12px;
@@ -191,13 +191,17 @@
 .dcp-input {
   flex: 1;
   min-width: 0;
+  max-height: 160px;
   border: none;
   outline: none;
   font-size: 14px;
+  line-height: 1.4;
   color: var(--color-text);
   background: transparent;
   padding: 10px 0;
   font-family: inherit;
+  resize: none;
+  overflow-y: auto;
 }
 
 .dcp-input:disabled {

@@ -27,6 +27,7 @@ export function MobileChatSheet({ owner, repo, explanation, defaultBranch, onClo
   );
   const [input, setInput] = useState('');
   const threadEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const isThinking = (isResponding || status !== null) && !streamingMessage;
   const canSend = input.trim().length > 0 && !isResponding && connectionState === 'open';
@@ -34,6 +35,15 @@ export function MobileChatSheet({ owner, repo, explanation, defaultBranch, onClo
   useEffect(() => {
     threadEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, streamingMessage, status]);
+
+  // Auto-grow the composer with content, capped by the CSS max-height (which
+  // takes over with internal scroll beyond that).
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [input]);
 
   useEffect(() => {
     track('chat_opened', { owner, repo, repo_full: `${owner}/${repo}` });
@@ -46,8 +56,8 @@ export function MobileChatSheet({ owner, repo, explanation, defaultBranch, onClo
     setInput('');
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       send(input);
     }
@@ -140,12 +150,14 @@ export function MobileChatSheet({ owner, repo, explanation, defaultBranch, onClo
             </div>
           )}
           <div className="mcs-input-row">
-            <input
+            <textarea
+              ref={textareaRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Ask about files, flows, setup…"
               className="mcs-input"
+              rows={1}
               disabled={connectionState !== 'open'}
             />
             <button

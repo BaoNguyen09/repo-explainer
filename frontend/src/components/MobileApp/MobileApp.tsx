@@ -100,6 +100,7 @@ export function MobileApp({ theme, onToggleTheme }: MobileAppProps) {
           repo={explain.parsedRepo.repo}
           explanation={explain.resultData.explanation}
           defaultBranch={explain.resultData.default_branch}
+          suggestedQuestions={explain.resultData.suggested_questions}
           onClose={() => setChatOpen(false)}
           onOpenDiagram={handleOpenDiagram}
         />

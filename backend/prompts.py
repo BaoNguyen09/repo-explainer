@@ -64,18 +64,25 @@ def parse_paths_from_response(text: str) -> List[str]:
             out.append(line)
     return out
 
-SUGGEST_QUESTIONS_SYSTEM = """You suggest exactly 3 short, specific questions a developer could ask next about a codebase, based on the explanation given. Return ONLY the 3 questions, one per line. No numbering, no bullets, no extra text."""
+SUGGEST_QUESTIONS_SYSTEM = """You suggest exactly 3 short, specific questions a developer could ask next about a codebase, based on the explanation and directory tree given. Prefer questions that point at specific files or directories from the tree over generic ones. Return ONLY the 3 questions, one per line. No numbering, no bullets, no extra text."""
 
 SUGGEST_QUESTIONS_USER_TEMPLATE = """Repository explanation:
 
 {explanation}
-
+{tree_section}
 Give 3 short, specific follow-up questions a developer would want to ask about this repository."""
 
+SUGGEST_QUESTIONS_TREE_SECTION_TEMPLATE = """
+Directory tree:
 
-def build_suggest_questions_user(explanation: str) -> str:
+{tree}
+"""
+
+
+def build_suggest_questions_user(explanation: str, tree: str = "") -> str:
     """Build user prompt for the suggested-questions LLM call."""
-    return SUGGEST_QUESTIONS_USER_TEMPLATE.format(explanation=explanation)
+    tree_section = SUGGEST_QUESTIONS_TREE_SECTION_TEMPLATE.format(tree=tree) if tree.strip() else ""
+    return SUGGEST_QUESTIONS_USER_TEMPLATE.format(explanation=explanation, tree_section=tree_section)
 
 
 def parse_questions_from_response(text: str) -> List[str]:

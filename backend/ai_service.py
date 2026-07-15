@@ -157,18 +157,19 @@ async def explain_repo(
         return str(e), False
 
 
-async def suggest_questions(explanation: str) -> List[str]:
+async def suggest_questions(explanation: str, tree: str = "") -> List[str]:
     """
     Ask the configured provider for 3 short follow-up questions based on a
-    repo's explanation. Returns an empty list on any failure so callers can
-    fall back to generic defaults instead of surfacing an error.
+    repo's explanation and (optionally) its directory tree. Returns an empty
+    list on any failure so callers can fall back to generic defaults instead
+    of surfacing an error.
     """
     try:
         provider = _get_provider()
         response = await with_ai_retry(
             "suggest_questions",
             lambda: provider.call_llm(
-                SUGGEST_QUESTIONS_SYSTEM, build_suggest_questions_user(explanation), max_tokens=200
+                SUGGEST_QUESTIONS_SYSTEM, build_suggest_questions_user(explanation, tree), max_tokens=200
             ),
         )
         return parse_questions_from_response(response)

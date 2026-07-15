@@ -97,6 +97,7 @@ export function DesktopOverview({
               repo={repo}
               explanation={data.explanation}
               defaultBranch={data.default_branch}
+              suggestedQuestions={data.suggested_questions}
               onClose={() => setChatOpen(false)}
               onOpenDiagram={onOpenDiagram}
             />

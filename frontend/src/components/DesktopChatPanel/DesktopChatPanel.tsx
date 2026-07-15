@@ -10,6 +10,7 @@ interface DesktopChatPanelProps {
   repo: string;
   explanation: string;
   defaultBranch: string;
+  suggestedQuestions?: string[];
   onClose: () => void;
   onOpenDiagram: (code: string, diagramId: string) => void;
 }
@@ -17,7 +18,15 @@ interface DesktopChatPanelProps {
 const INTRO_TEXT =
   "I've read the overview of this repo. Ask me anything — files, flows, setup, or implementation details.";
 
-export function DesktopChatPanel({ owner, repo, explanation, defaultBranch, onClose, onOpenDiagram }: DesktopChatPanelProps) {
+export function DesktopChatPanel({
+  owner,
+  repo,
+  explanation,
+  defaultBranch,
+  suggestedQuestions,
+  onClose,
+  onOpenDiagram,
+}: DesktopChatPanelProps) {
   const { messages, streamingMessage, status, isResponding, connectionState, sendMessage } = useChat(
     owner,
     repo,
@@ -27,7 +36,7 @@ export function DesktopChatPanel({ owner, repo, explanation, defaultBranch, onCl
   const [input, setInput] = useState('');
   const threadEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const suggestions = useSuggestedQuestions(owner, repo, explanation);
+  const suggestions = useSuggestedQuestions(owner, repo, explanation, suggestedQuestions);
 
   const isThinking = (isResponding || status !== null) && !streamingMessage;
   const canSend = input.trim().length > 0 && !isResponding && connectionState === 'open';

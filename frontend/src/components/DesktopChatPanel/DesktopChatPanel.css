@@ -1,0 +1,222 @@
+.dcp-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.dcp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 3px solid var(--color-divider);
+  background-color: var(--color-bg);
+  flex-shrink: 0;
+}
+
+.dcp-title-block {
+  min-width: 0;
+}
+
+.dcp-title {
+  font-weight: 700;
+  color: var(--color-text-strong);
+  font-size: 15px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dcp-meta {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.dcp-close-btn {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  background-color: var(--color-bg);
+  border: 2px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: 2px 2px 0 var(--color-shadow);
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.dcp-thread {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.dcp-msg {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.dcp-msg-user {
+  align-self: flex-end;
+  max-width: 88%;
+}
+
+.dcp-msg-bot {
+  align-self: flex-start;
+  max-width: 92%;
+}
+
+.dcp-bot-avatar {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  margin-top: 4px;
+  mix-blend-mode: multiply;
+}
+
+[data-theme='dark'] .dcp-bot-avatar {
+  mix-blend-mode: lighten;
+}
+
+.dcp-bubble {
+  padding: 12px 16px;
+  border: 2px solid var(--color-border);
+  font-size: 14px;
+  line-height: 1.55;
+  min-width: 0;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.dcp-bubble-user {
+  background-color: var(--color-accent);
+  color: #ffffff;
+  border-radius: 14px 14px 4px 14px;
+  box-shadow: 3px 3px 0 var(--color-shadow);
+}
+
+.dcp-bubble-bot {
+  background-color: var(--color-bg-elevated);
+  color: var(--color-text);
+  border-radius: 14px 14px 14px 4px;
+  box-shadow: 3px 3px 0 var(--color-shadow);
+}
+
+.dcp-bubble-bot .markdown-content {
+  font-size: 14px;
+}
+
+.dcp-bubble-bot .markdown-content p:last-child {
+  margin-bottom: 0;
+}
+
+.dcp-thinking {
+  padding: 12px 16px;
+  background-color: var(--color-bg-elevated);
+  border: 2px solid var(--color-border);
+  border-radius: 14px 14px 14px 4px;
+  box-shadow: 3px 3px 0 var(--color-shadow);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.dcp-thinking-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: var(--color-accent);
+  animation: dcp-pulse 1s ease-in-out infinite;
+}
+
+@keyframes dcp-pulse {
+  0%, 100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.dcp-thinking-text {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.dcp-composer {
+  border-top: 2px solid var(--color-border);
+  background-color: var(--color-bg);
+  padding: 14px 16px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.dcp-suggestions {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.dcp-suggestion-chip {
+  flex-shrink: 0;
+  padding: 8px 13px;
+  font-size: 13px;
+  background-color: var(--color-bg-elevated);
+  color: var(--color-text-strong);
+  border: 2px solid var(--color-border);
+  border-radius: 999px;
+  box-shadow: 2px 2px 0 var(--color-shadow);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.dcp-input-row {
+  display: flex;
+  align-items: center;
+  background-color: var(--color-input-bg);
+  border: 2px solid var(--color-border);
+  border-radius: 12px;
+  box-shadow: 3px 3px 0 var(--color-shadow);
+  padding: 4px 4px 4px 14px;
+  gap: 8px;
+}
+
+.dcp-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  color: var(--color-text);
+  background: transparent;
+  padding: 10px 0;
+  font-family: inherit;
+}
+
+.dcp-input:disabled {
+  opacity: 0.6;
+}
+
+.dcp-send-btn {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  background-color: var(--color-accent);
+  color: #ffffff;
+  border: 2px solid var(--color-border);
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.dcp-send-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

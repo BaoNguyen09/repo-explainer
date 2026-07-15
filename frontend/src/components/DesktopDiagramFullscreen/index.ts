@@ -1,0 +1,1 @@
+export { DesktopDiagramFullscreen } from './DesktopDiagramFullscreen';

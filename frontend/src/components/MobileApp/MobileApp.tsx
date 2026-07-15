@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { useExplainFlow } from '../../hooks/useExplainFlow';
-import { useAutoSubmitFromPath } from '../../hooks/useAutoSubmitFromPath';
+import type { UseExplainFlowReturn } from '../../hooks/useExplainFlow';
 import { MobileHome } from '../MobileHome';
 import { MobileLoading } from '../MobileLoading';
 import { MobileOverview } from '../MobileOverview';
@@ -12,15 +11,13 @@ type Theme = 'light' | 'dark';
 interface MobileAppProps {
   theme: Theme;
   onToggleTheme: () => void;
+  explain: UseExplainFlowReturn;
+  defaultQuery?: string;
 }
 
-export function MobileApp({ theme, onToggleTheme }: MobileAppProps) {
-  const explain = useExplainFlow();
+export function MobileApp({ theme, onToggleTheme, explain, defaultQuery }: MobileAppProps) {
   const [chatOpen, setChatOpen] = useState(false);
   const [openDiagram, setOpenDiagram] = useState<{ code: string; diagramId: string } | null>(null);
-  const [defaultQuery, setDefaultQuery] = useState<string | undefined>(undefined);
-
-  useAutoSubmitFromPath(explain.submit, (query) => setDefaultQuery(query));
 
   // The screen is derived from the explain flow's state on every render rather than
   // tracked separately: loading while a request is in flight, overview once a result

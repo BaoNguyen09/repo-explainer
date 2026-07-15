@@ -157,7 +157,7 @@ export function DesktopChatPanel({
             ))}
           </div>
         )}
-        <div className="dcp-input-row">
+        <div className="dcp-input-box">
           <textarea
             ref={textareaRef}
             value={input}
@@ -168,15 +168,17 @@ export function DesktopChatPanel({
             rows={1}
             disabled={connectionState !== 'open'}
           />
-          <button
-            type="button"
-            className="dcp-send-btn"
-            onClick={() => send(input)}
-            disabled={!canSend}
-            aria-label="Send message"
-          >
-            →
-          </button>
+          <div className="dcp-input-footer">
+            <button
+              type="button"
+              className="dcp-send-btn"
+              onClick={() => send(input)}
+              disabled={!canSend}
+              aria-label="Send message"
+            >
+              →
+            </button>
+          </div>
         </div>
       </div>
     </div>

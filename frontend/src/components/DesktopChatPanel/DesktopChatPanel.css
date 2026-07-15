@@ -177,19 +177,17 @@
   cursor: pointer;
 }
 
-.dcp-input-row {
+.dcp-input-box {
   display: flex;
-  align-items: flex-end;
+  flex-direction: column;
   background-color: var(--color-input-bg);
   border: 2px solid var(--color-border);
   border-radius: 12px;
   box-shadow: 3px 3px 0 var(--color-shadow);
-  padding: 4px 4px 4px 14px;
-  gap: 8px;
+  padding: 10px 12px 8px;
 }
 
 .dcp-input {
-  flex: 1;
   min-width: 0;
   max-height: 160px;
   border: none;
@@ -198,10 +196,16 @@
   line-height: 1.4;
   color: var(--color-text);
   background: transparent;
-  padding: 10px 0;
+  padding: 0;
   font-family: inherit;
   resize: none;
   overflow-y: auto;
+}
+
+.dcp-input-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 6px;
 }
 
 .dcp-input:disabled {
@@ -210,14 +214,17 @@
 
 .dcp-send-btn {
   flex-shrink: 0;
-  width: 40px;
-  height: 40px;
+  width: 30px;
+  height: 30px;
   background-color: var(--color-accent);
   color: #ffffff;
   border: 2px solid var(--color-border);
-  border-radius: 8px;
-  font-size: 16px;
+  border-radius: 50%;
+  font-size: 13px;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .dcp-send-btn:disabled {

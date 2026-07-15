@@ -158,7 +158,7 @@ export function MobileChatSheet({
               ))}
             </div>
           )}
-          <div className="mcs-input-row">
+          <div className="mcs-input-box">
             <textarea
               ref={textareaRef}
               value={input}
@@ -169,15 +169,17 @@ export function MobileChatSheet({
               rows={1}
               disabled={connectionState !== 'open'}
             />
-            <button
-              type="button"
-              className="mcs-send-btn"
-              onClick={() => send(input)}
-              disabled={!canSend}
-              aria-label="Send message"
-            >
-              →
-            </button>
+            <div className="mcs-input-footer">
+              <button
+                type="button"
+                className="mcs-send-btn"
+                onClick={() => send(input)}
+                disabled={!canSend}
+                aria-label="Send message"
+              >
+                →
+              </button>
+            </div>
           </div>
         </div>
       </div>

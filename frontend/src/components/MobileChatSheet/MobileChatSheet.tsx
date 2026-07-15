@@ -130,13 +130,15 @@ export function MobileChatSheet({ owner, repo, explanation, defaultBranch, onClo
         </div>
 
         <div className="mcs-composer">
-          <div className="mcs-suggestions">
-            {SUGGESTIONS.map((s) => (
-              <button key={s} type="button" className="mcs-suggestion-chip" onClick={() => setInput(s)}>
-                {s}
-              </button>
-            ))}
-          </div>
+          {messages.length === 0 && (
+            <div className="mcs-suggestions">
+              {SUGGESTIONS.map((s) => (
+                <button key={s} type="button" className="mcs-suggestion-chip" onClick={() => setInput(s)}>
+                  {s}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="mcs-input-row">
             <input
               value={input}

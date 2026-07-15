@@ -129,13 +129,15 @@ export function DesktopChatPanel({ owner, repo, explanation, defaultBranch, onCl
       </div>
 
       <div className="dcp-composer">
-        <div className="dcp-suggestions">
-          {SUGGESTIONS.map((s) => (
-            <button key={s} type="button" className="dcp-suggestion-chip" onClick={() => setInput(s)}>
-              {s}
-            </button>
-          ))}
-        </div>
+        {messages.length === 0 && (
+          <div className="dcp-suggestions">
+            {SUGGESTIONS.map((s) => (
+              <button key={s} type="button" className="dcp-suggestion-chip" onClick={() => setInput(s)}>
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
         <div className="dcp-input-row">
           <input
             value={input}

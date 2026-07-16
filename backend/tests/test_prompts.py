@@ -1,6 +1,21 @@
 """Tests for prompt parsing helpers."""
 
-from backend.prompts import parse_questions_from_response
+from backend.prompts import SYSTEM_PROMPT, parse_questions_from_response
+
+
+def test_system_prompt_forbids_reserved_words_as_mermaid_node_ids():
+    """Regression guard for the mermaid-hardening fix: reserved words (end, style,
+    class, etc.) used as bare node IDs reliably break the real mermaid parser."""
+    assert "end, default" in SYSTEM_PROMPT
+    assert "style, linkStyle, classDef, class" in SYSTEM_PROMPT
+
+
+def test_system_prompt_forbids_nested_double_quotes_in_mermaid_labels():
+    assert "Never put a literal double quote inside a double-quoted label" in SYSTEM_PROMPT
+
+
+def test_system_prompt_requires_double_percent_for_mermaid_comments():
+    assert "Comments (if any) must start with %%, never a single %." in SYSTEM_PROMPT
 
 
 def test_parse_questions_from_response_strips_numbering_and_bullets():

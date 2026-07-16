@@ -1,4 +1,5 @@
 import { useMermaidRender } from '../../hooks/useMermaidRender';
+import { MermaidRenderError } from './MermaidRenderError';
 import './MermaidDiagramPreview.css';
 
 interface MermaidDiagramPreviewProps {
@@ -13,7 +14,15 @@ interface MermaidDiagramPreviewProps {
  * instead of capturing touch gestures inline.
  */
 export function MermaidDiagramPreview({ diagramId, onOpenFullscreen, ...props }: MermaidDiagramPreviewProps) {
-  const { svgContent, isRendered } = useMermaidRender(props.code, diagramId);
+  const { svgContent, isRendered, error } = useMermaidRender(props.code, diagramId);
+
+  if (error) {
+    return (
+      <div className="mermaid-preview-card">
+        <MermaidRenderError />
+      </div>
+    );
+  }
 
   return (
     <div className="mermaid-preview-card">

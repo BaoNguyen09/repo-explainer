@@ -1,6 +1,7 @@
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import { useMermaidRender } from '../../hooks/useMermaidRender';
 import { copyMermaidSvg, downloadMermaidPng } from '../../utils/mermaidExport';
+import { MermaidRenderError } from '../MermaidDiagram/MermaidRenderError';
 import './MobileDiagramFullscreen.css';
 
 interface MobileDiagramFullscreenProps {
@@ -11,7 +12,7 @@ interface MobileDiagramFullscreenProps {
 }
 
 export function MobileDiagramFullscreen({ code, diagramId, repoName, onClose }: MobileDiagramFullscreenProps) {
-  const { svgContent, isRendered } = useMermaidRender(code, diagramId);
+  const { svgContent, isRendered, error } = useMermaidRender(code, diagramId);
 
   return (
     <div className="mdf-screen">
@@ -26,7 +27,9 @@ export function MobileDiagramFullscreen({ code, diagramId, repoName, onClose }: 
       </div>
 
       <div className="mdf-canvas">
-        {!isRendered ? (
+        {error ? (
+          <MermaidRenderError />
+        ) : !isRendered ? (
           <div className="mdf-loading">Rendering diagram...</div>
         ) : (
           <TransformWrapper
@@ -67,14 +70,16 @@ export function MobileDiagramFullscreen({ code, diagramId, repoName, onClose }: 
         )}
       </div>
 
-      <div className="mdf-action-bar">
-        <button type="button" className="mdf-action-btn" onClick={() => copyMermaidSvg(svgContent)}>
-          ⧉ Copy SVG
-        </button>
-        <button type="button" className="mdf-action-btn" onClick={() => downloadMermaidPng(svgContent, diagramId)}>
-          ↓ Download PNG
-        </button>
-      </div>
+      {!error && (
+        <div className="mdf-action-bar">
+          <button type="button" className="mdf-action-btn" onClick={() => copyMermaidSvg(svgContent)}>
+            ⧉ Copy SVG
+          </button>
+          <button type="button" className="mdf-action-btn" onClick={() => downloadMermaidPng(svgContent, diagramId)}>
+            ↓ Download PNG
+          </button>
+        </div>
+      )}
     </div>
   );
 }

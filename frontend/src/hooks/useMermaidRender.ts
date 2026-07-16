@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import mermaid from 'mermaid';
 import { initializeMermaid } from '../utils/mermaidInit';
+import { track } from '../config/analytics';
 
 interface UseMermaidRenderReturn {
   svgContent: string;
@@ -41,8 +42,17 @@ export function useMermaidRender(code: string, diagramId: string): UseMermaidRen
       } catch (renderError) {
         if (!isMounted) return;
 
+        const message = renderError instanceof Error ? renderError.message : 'Unknown error';
         console.error('Mermaid rendering error:', renderError);
-        setError(renderError instanceof Error ? renderError.message : 'Unknown error');
+        setError(message);
+
+        // AI-generated diagram source, not user content — safe to send a snippet so
+        // recurring failure patterns can inform further prompt hardening.
+        track('mermaid_render_error', {
+          diagram_id: diagramId,
+          error: message.slice(0, 200),
+          code_snippet: code.trim().slice(0, 300),
+        });
       }
     };
 

@@ -169,10 +169,19 @@ async def suggest_questions(explanation: str, tree: str = "") -> List[str]:
         response = await with_ai_retry(
             "suggest_questions",
             lambda: provider.call_llm(
-                SUGGEST_QUESTIONS_SYSTEM, build_suggest_questions_user(explanation, tree), max_tokens=200
+                SUGGEST_QUESTIONS_SYSTEM, build_suggest_questions_user(explanation, tree), max_tokens=500
             ),
         )
-        return parse_questions_from_response(response)
+        questions = parse_questions_from_response(response)
+        # A truncated/partial response (e.g. cut off mid-question) is worse than none —
+        # callers treat a non-empty list as "good", so don't hand back fewer than 3.
+        if len(questions) < 3:
+            utils.logger.warning(
+                "ai_service.suggest_questions: got %d questions (expected 3), falling back to empty list",
+                len(questions),
+            )
+            return []
+        return questions
     except Exception as e:
         utils.logger.warning("ai_service.suggest_questions failed: %s, falling back to empty list", e)
         return []

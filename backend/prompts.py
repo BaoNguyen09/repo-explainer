@@ -149,11 +149,13 @@ IMPORTANT FORMATTING RULES:
 5. The repository structure section MUST appear AFTER any Mermaid diagrams.
 
 MERMAID SYNTAX RULES (follow strictly to avoid parse errors):
-- Use simple node IDs (A, B, C, N1, N2). Put display text in the label only.
-- Any label containing parentheses, brackets [], slashes /, spaces, or colons MUST be wrapped in double quotes inside the brackets: A["Frontend (React + Vite)"], B["GET /owner/repo/stream"].
+- Use simple node IDs (A, B, C, N1, N2). Put display text in the label only. Never use a reserved word (end, default, style, linkStyle, classDef, class, click, call, href, interpolate) as a node ID, even capitalized differently — put it in a quoted label on a safe ID instead (e.g. A["End"], not end["End"]).
+- Any label containing parentheses (), brackets [], braces {}, slashes / \, spaces, colons, semicolons, or any of # @ ! ? < > ' " MUST be wrapped in double quotes inside the brackets: A["Frontend (React + Vite)"], B["GET /owner/repo/stream"].
+- Never put a literal double quote inside a double-quoted label. Use a single quote instead: A["Say 'hello'"], not A["Say "hello""].
 - Write each statement on ONE line. Do not split a node or arrow across multiple lines.
 - For arrow labels use quotes: A -->|"label text"| B. No spaces in the label key; use one word or quoted text.
 - Do not use raw [ or ] inside a label unless the entire label is already in double quotes (e.g. A["Path [optional]"] is OK).
+- Comments (if any) must start with %%, never a single %.
 - Example of valid diagram:
   ```mermaid
   graph TD

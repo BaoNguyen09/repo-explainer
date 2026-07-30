@@ -1,0 +1,15 @@
+# Repo Explainer — https://repex.thienbao.dev/
+#
+# Content signals (preserved from the Cloudflare-managed default). As a condition
+# of accessing this website, you agree to abide by the following content signals:
+#   search:   building a search index and providing search results.
+#   ai-input: inputting content into one or more AI models (RAG, grounding, etc).
+#   ai-train: training or fine-tuning AI models.
+# Any restrictions expressed via content signals are express reservations of rights
+# under Article 4 of EU Directive 2019/790 on copyright in the Digital Single Market.
+
+User-agent: *
+Content-Signal: search=yes, ai-input=yes, ai-train=no
+Allow: /
+
+Sitemap: https://repex.thienbao.dev/sitemap.xml

@@ -153,7 +153,7 @@ MERMAID SYNTAX RULES (follow strictly to avoid parse errors):
 - Any label containing parentheses (), brackets [], braces {}, slashes / \, spaces, colons, semicolons, or any of # @ ! ? < > ' " MUST be wrapped in double quotes inside the brackets: A["Frontend (React + Vite)"], B["GET /owner/repo/stream"].
 - Never put a literal double quote inside a double-quoted label. Use a single quote instead: A["Say 'hello'"], not A["Say "hello""].
 - Write each statement on ONE line. Do not split a node or arrow across multiple lines.
-- For arrow labels use quotes: A -->|"label text"| B. No spaces in the label key; use one word or quoted text.
+- Arrow/edge labels (the text between `|...|`) follow the SAME quoting rule as node labels: if it contains parentheses (), brackets [], braces {}, slashes / \, spaces, colons, semicolons, or any of # @ ! ? < > ' ", it MUST be wrapped in double quotes: A -->|"WebSocket (/chat)"| B, not A -->|WebSocket (/chat)| B. A plain one-word label needs no quotes.
 - Do not use raw [ or ] inside a label unless the entire label is already in double quotes (e.g. A["Path [optional]"] is OK).
 - Comments (if any) must start with %%, never a single %.
 - Example of valid diagram:

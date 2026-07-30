@@ -40,3 +40,14 @@ test('an unterminated bracket breaks the parser', async () => {
     mermaid.render('rules-unterminated', 'flowchart TD\n  A[Unterminated --> B["Fine"]'),
   ).rejects.toThrow();
 });
+
+test('an unquoted arrow label with parentheses/slash breaks the parser', async () => {
+  await expect(
+    mermaid.render('rules-pipe-unquoted', 'flowchart TD\n  A -->|WebSocket (/chat)| B'),
+  ).rejects.toThrow();
+});
+
+// No "quoting fixes it" counterpart here: mermaid's edge-label layout step calls
+// real SVG path-geometry APIs (getPointAtLength) that happy-dom doesn't implement,
+// so a *valid* labeled-arrow diagram fails in this test env for environment reasons,
+// not parser reasons. The negative case above is what actually guards the rule.

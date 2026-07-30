@@ -169,7 +169,10 @@ async def suggest_questions(explanation: str, tree: str = "") -> List[str]:
         response = await with_ai_retry(
             "suggest_questions",
             lambda: provider.call_llm(
-                SUGGEST_QUESTIONS_SYSTEM, build_suggest_questions_user(explanation, tree), max_tokens=500
+                SUGGEST_QUESTIONS_SYSTEM,
+                build_suggest_questions_user(explanation, tree),
+                max_tokens=500,
+                thinking_level="low",
             ),
         )
         questions = parse_questions_from_response(response)

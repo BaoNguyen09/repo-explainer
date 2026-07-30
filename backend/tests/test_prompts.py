@@ -1,6 +1,6 @@
 """Tests for prompt parsing helpers."""
 
-from backend.prompts import SYSTEM_PROMPT, parse_questions_from_response
+from backend.prompts import SUGGEST_QUESTIONS_SYSTEM, SYSTEM_PROMPT, parse_questions_from_response
 
 
 def test_system_prompt_forbids_reserved_words_as_mermaid_node_ids():
@@ -16,6 +16,10 @@ def test_system_prompt_forbids_nested_double_quotes_in_mermaid_labels():
 
 def test_system_prompt_requires_double_percent_for_mermaid_comments():
     assert "Comments (if any) must start with %%, never a single %." in SYSTEM_PROMPT
+
+
+def test_suggest_questions_system_caps_question_length_at_ten_words():
+    assert "10 words or fewer" in SUGGEST_QUESTIONS_SYSTEM
 
 
 def test_parse_questions_from_response_strips_numbering_and_bullets():

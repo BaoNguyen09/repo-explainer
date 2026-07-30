@@ -14,12 +14,15 @@ class ClaudeProvider(LLMProvider):
     def __init__(self, api_key: Optional[str] = None) -> None:
         self._api_key = api_key or env.ANTHROPIC_API_KEY
 
-    async def call_llm(self, system: str, user_content: str, max_tokens: int = 4096) -> str:
+    async def call_llm(
+        self, system: str, user_content: str, max_tokens: int = 4096, thinking_level: str = "high"
+    ) -> str:
         """
         Single LLM call. Returns the assistant text.
 
         Mirrors the previous ClaudeService._call_llm behaviour so existing
-        prompts and callers can remain unchanged.
+        prompts and callers can remain unchanged. `thinking_level` is a
+        Gemini-specific knob and has no effect here.
         """
         if not self._api_key:
             raise RuntimeError("ANTHROPIC_API_KEY is not set but Claude provider is selected")

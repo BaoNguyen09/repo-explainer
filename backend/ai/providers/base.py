@@ -10,7 +10,9 @@ class LLMProvider(Protocol):
     Providers take a system prompt and user content and return the assistant text.
     """
 
-    async def call_llm(self, system: str, user_content: str, max_tokens: int = 4096) -> str:
+    async def call_llm(
+        self, system: str, user_content: str, max_tokens: int = 4096, thinking_level: str = "high"
+    ) -> str:
         ...
 
     async def stream_llm(

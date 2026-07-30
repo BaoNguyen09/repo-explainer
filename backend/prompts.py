@@ -64,7 +64,7 @@ def parse_paths_from_response(text: str) -> List[str]:
             out.append(line)
     return out
 
-SUGGEST_QUESTIONS_SYSTEM = """You suggest exactly 3 short, specific questions a developer could ask next about a codebase, based on the explanation and directory tree given. Prefer questions that point at specific files or directories from the tree over generic ones. Return ONLY the 3 questions, one per line. No numbering, no bullets, no extra text."""
+SUGGEST_QUESTIONS_SYSTEM = """You suggest exactly 3 short, specific questions a developer could ask next about a codebase, based on the explanation and directory tree given. Prefer questions that point at specific files or directories from the tree over generic ones. Each question MUST be 10 words or fewer. Return ONLY the 3 questions, one per line. No numbering, no bullets, no extra text."""
 
 SUGGEST_QUESTIONS_USER_TEMPLATE = """Repository explanation:
 

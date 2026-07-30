@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useChat } from '../../hooks/useChat';
+import { useSuggestedQuestions } from '../../hooks/useSuggestedQuestions';
 import { track } from '../../config/analytics';
 import { MarkdownRenderer } from '../MarkdownRenderer';
 import './MobileChatSheet.css';
@@ -9,16 +10,23 @@ interface MobileChatSheetProps {
   repo: string;
   explanation: string;
   defaultBranch: string;
+  suggestedQuestions?: string[];
   onClose: () => void;
   onOpenDiagram: (code: string, diagramId: string) => void;
 }
 
-const SUGGESTIONS = ['How does routing work?', 'Where is auth handled?', 'Explain the test setup'];
-
 const INTRO_TEXT =
   "I've read the overview of this repo. Ask me anything — files, flows, setup, or implementation details.";
 
-export function MobileChatSheet({ owner, repo, explanation, defaultBranch, onClose, onOpenDiagram }: MobileChatSheetProps) {
+export function MobileChatSheet({
+  owner,
+  repo,
+  explanation,
+  defaultBranch,
+  suggestedQuestions,
+  onClose,
+  onOpenDiagram,
+}: MobileChatSheetProps) {
   const { messages, streamingMessage, status, isResponding, connectionState, sendMessage } = useChat(
     owner,
     repo,
@@ -27,6 +35,8 @@ export function MobileChatSheet({ owner, repo, explanation, defaultBranch, onClo
   );
   const [input, setInput] = useState('');
   const threadEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const suggestions = useSuggestedQuestions(owner, repo, explanation, suggestedQuestions);
 
   const isThinking = (isResponding || status !== null) && !streamingMessage;
   const canSend = input.trim().length > 0 && !isResponding && connectionState === 'open';
@@ -34,6 +44,15 @@ export function MobileChatSheet({ owner, repo, explanation, defaultBranch, onClo
   useEffect(() => {
     threadEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, streamingMessage, status]);
+
+  // Auto-grow the composer with content, capped by the CSS max-height (which
+  // takes over with internal scroll beyond that).
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [input]);
 
   useEffect(() => {
     track('chat_opened', { owner, repo, repo_full: `${owner}/${repo}` });
@@ -46,8 +65,8 @@ export function MobileChatSheet({ owner, repo, explanation, defaultBranch, onClo
     setInput('');
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       send(input);
     }
@@ -130,31 +149,37 @@ export function MobileChatSheet({ owner, repo, explanation, defaultBranch, onClo
         </div>
 
         <div className="mcs-composer">
-          <div className="mcs-suggestions">
-            {SUGGESTIONS.map((s) => (
-              <button key={s} type="button" className="mcs-suggestion-chip" onClick={() => setInput(s)}>
-                {s}
-              </button>
-            ))}
-          </div>
-          <div className="mcs-input-row">
-            <input
+          {messages.length === 0 && (
+            <div className="mcs-suggestions">
+              {suggestions.map((s) => (
+                <button key={s} type="button" className="mcs-suggestion-chip" onClick={() => setInput(s)}>
+                  {s}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="mcs-input-box">
+            <textarea
+              ref={textareaRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Ask about files, flows, setup…"
               className="mcs-input"
+              rows={1}
               disabled={connectionState !== 'open'}
             />
-            <button
-              type="button"
-              className="mcs-send-btn"
-              onClick={() => send(input)}
-              disabled={!canSend}
-              aria-label="Send message"
-            >
-              →
-            </button>
+            <div className="mcs-input-footer">
+              <button
+                type="button"
+                className="mcs-send-btn"
+                onClick={() => send(input)}
+                disabled={!canSend}
+                aria-label="Send message"
+              >
+                →
+              </button>
+            </div>
           </div>
         </div>
       </div>

@@ -19,7 +19,7 @@ from backend import GitHubTools
 from backend import ai_service
 from backend import chat_service
 from backend import env, utils
-from backend.schema import ModelResponse, RepoInfo
+from backend.schema import ModelResponse, RepoInfo, SuggestedQuestionsRequest
 
 # —— PostHog analytics (no-op when API key is absent) ——
 posthog_client: Posthog | None = None
@@ -319,12 +319,21 @@ async def explain_repo(
                 explanation_chars=explanation_chars,
                 instructions_present=instructions_present,
             )
+
+            suggested_questions: list[str] = []
+            try:
+                tree = await github.fetch_directory_tree_with_depth(repo_info, depth=3)
+                suggested_questions = await ai_service.suggest_questions(explanation, tree)
+            except Exception:
+                utils.logger.exception("Failed to generate suggested questions for %s/%s", owner, repo)
+
             return ModelResponse(
                 explanation=explanation,
                 repo=f"{owner}/{repo}",
                 cache=False,
                 timestamp=utils.date_now(),
                 default_branch=default_branch,
+                suggested_questions=suggested_questions,
             )
     except httpx.HTTPStatusError as e:
         status_code = e.response.status_code
@@ -457,6 +466,15 @@ async def _run_stream_pipeline(
                 explanation_chars=len(explanation),
                 instructions_present=instructions_present,
             )
+
+            # Best-effort: chat suggestions shouldn't fail the overview if this errors.
+            suggested_questions: list[str] = []
+            try:
+                tree = await github.fetch_directory_tree_with_depth(repo_info, depth=3)
+                suggested_questions = await ai_service.suggest_questions(explanation, tree)
+            except Exception:
+                utils.logger.exception("Failed to generate suggested questions for %s/%s", owner, repo)
+
             queue.put_nowait(
                 {
                     "done": True,
@@ -466,6 +484,7 @@ async def _run_stream_pipeline(
                         cache=False,
                         timestamp=utils.date_now(),
                         default_branch=default_branch,
+                        suggested_questions=suggested_questions,
                     ),
                 }
             )
@@ -541,6 +560,22 @@ async def _stream_generator(
             await task
         except asyncio.CancelledError:
             pass
+
+
+@app.post("/{owner}/{repo}/suggested-questions")
+@limiter.limit("60/day")
+async def suggested_questions(
+    request: Request,
+    owner: str,
+    repo: str,
+    body: SuggestedQuestionsRequest,
+):
+    """Suggest 3 short follow-up questions for a repo's chat, based on its explanation."""
+    explanation = (body.explanation or "").strip()
+    if not explanation:
+        raise HTTPException(status_code=400, detail="Explanation is required.")
+    questions = await ai_service.suggest_questions(explanation)
+    return {"questions": questions}
 
 
 @app.websocket("/{owner}/{repo}/chat")

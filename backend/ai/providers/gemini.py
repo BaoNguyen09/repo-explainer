@@ -21,7 +21,9 @@ class GeminiProvider(LLMProvider):
     def __init__(self, api_key: Optional[str] = None) -> None:
         self._api_key = api_key or env.GEMINI_API_KEY
 
-    async def call_llm(self, system: str, user_content: str, max_tokens: int = 4096) -> str:
+    async def call_llm(
+        self, system: str, user_content: str, max_tokens: int = 4096, thinking_level: str = "high"
+    ) -> str:
         """
         Call the Gemini text model asynchronously.
         """
@@ -34,7 +36,7 @@ class GeminiProvider(LLMProvider):
             model=self.MODEL,
             contents=user_content,
             config=types.GenerateContentConfig(
-                thinking_config=types.ThinkingConfig(thinking_level="high"),
+                thinking_config=types.ThinkingConfig(thinking_level=thinking_level),
                 system_instruction=system,
                 max_output_tokens=max_tokens,
             ),

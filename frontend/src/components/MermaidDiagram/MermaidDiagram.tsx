@@ -4,6 +4,7 @@ import type { ReactZoomPanPinchRef } from 'react-zoom-pan-pinch';
 import { FiZoomIn, FiZoomOut, FiMaximize2, FiCopy, FiDownload, FiFile } from 'react-icons/fi';
 import { useMermaidRender } from '../../hooks/useMermaidRender';
 import { copyMermaidSvg, downloadMermaidPng, downloadMermaidSvg } from '../../utils/mermaidExport';
+import { MermaidRenderError } from './MermaidRenderError';
 import './MermaidDiagram.css';
 
 interface MermaidDiagramProps {
@@ -12,9 +13,13 @@ interface MermaidDiagramProps {
 }
 
 export function MermaidDiagram({ code, diagramId }: MermaidDiagramProps) {
-  const { svgContent, isRendered } = useMermaidRender(code, diagramId);
+  const { svgContent, isRendered, error } = useMermaidRender(code, diagramId);
   const containerRef = useRef<HTMLDivElement>(null);
   const transformRef = useRef<ReactZoomPanPinchRef | null>(null);
+
+  if (error) {
+    return <MermaidRenderError />;
+  }
 
   if (!isRendered) {
     return (

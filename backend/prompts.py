@@ -64,6 +64,39 @@ def parse_paths_from_response(text: str) -> List[str]:
             out.append(line)
     return out
 
+SUGGEST_QUESTIONS_SYSTEM = """You suggest exactly 3 short, specific questions a developer could ask next about a codebase, based on the explanation and directory tree given. Prefer questions that point at specific files or directories from the tree over generic ones. Each question MUST be 10 words or fewer. Return ONLY the 3 questions, one per line. No numbering, no bullets, no extra text."""
+
+SUGGEST_QUESTIONS_USER_TEMPLATE = """Repository explanation:
+
+{explanation}
+{tree_section}
+Give 3 short, specific follow-up questions a developer would want to ask about this repository."""
+
+SUGGEST_QUESTIONS_TREE_SECTION_TEMPLATE = """
+Directory tree:
+
+{tree}
+"""
+
+
+def build_suggest_questions_user(explanation: str, tree: str = "") -> str:
+    """Build user prompt for the suggested-questions LLM call."""
+    tree_section = SUGGEST_QUESTIONS_TREE_SECTION_TEMPLATE.format(tree=tree) if tree.strip() else ""
+    return SUGGEST_QUESTIONS_USER_TEMPLATE.format(explanation=explanation, tree_section=tree_section)
+
+
+def parse_questions_from_response(text: str) -> List[str]:
+    """Parse LLM response into up to 3 question strings, stripping numbering/bullets."""
+    if not text or not text.strip():
+        return []
+    out = []
+    for line in text.strip().splitlines():
+        line = re.sub(r"^[\-\*\d\.\)]+\s*", "", line.strip()).strip()
+        if line:
+            out.append(line)
+    return out[:3]
+
+
 SYSTEM_PROMPT = """You are a staff software engineer. Explain GitHub repositories 
 clearly and thoroughly for curious developers who want to deeply understand the codebase.
 Produce the answer in Markdown format.
@@ -116,11 +149,13 @@ IMPORTANT FORMATTING RULES:
 5. The repository structure section MUST appear AFTER any Mermaid diagrams.
 
 MERMAID SYNTAX RULES (follow strictly to avoid parse errors):
-- Use simple node IDs (A, B, C, N1, N2). Put display text in the label only.
-- Any label containing parentheses, brackets [], slashes /, spaces, or colons MUST be wrapped in double quotes inside the brackets: A["Frontend (React + Vite)"], B["GET /owner/repo/stream"].
+- Use simple node IDs (A, B, C, N1, N2). Put display text in the label only. Never use a reserved word (end, default, style, linkStyle, classDef, class, click, call, href, interpolate) as a node ID, even capitalized differently — put it in a quoted label on a safe ID instead (e.g. A["End"], not end["End"]).
+- Any label containing parentheses (), brackets [], braces {}, slashes / \, spaces, colons, semicolons, or any of # @ ! ? < > ' " MUST be wrapped in double quotes inside the brackets: A["Frontend (React + Vite)"], B["GET /owner/repo/stream"].
+- Never put a literal double quote inside a double-quoted label. Use a single quote instead: A["Say 'hello'"], not A["Say "hello""].
 - Write each statement on ONE line. Do not split a node or arrow across multiple lines.
-- For arrow labels use quotes: A -->|"label text"| B. No spaces in the label key; use one word or quoted text.
+- Arrow/edge labels (the text between `|...|`) follow the SAME quoting rule as node labels: if it contains parentheses (), brackets [], braces {}, slashes / \, spaces, colons, semicolons, or any of # @ ! ? < > ' ", it MUST be wrapped in double quotes: A -->|"WebSocket (/chat)"| B, not A -->|WebSocket (/chat)| B. A plain one-word label needs no quotes.
 - Do not use raw [ or ] inside a label unless the entire label is already in double quotes (e.g. A["Path [optional]"] is OK).
+- Comments (if any) must start with %%, never a single %.
 - Example of valid diagram:
   ```mermaid
   graph TD

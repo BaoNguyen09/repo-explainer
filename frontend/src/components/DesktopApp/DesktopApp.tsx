@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { useExplainFlow } from '../../hooks/useExplainFlow';
-import { useAutoSubmitFromPath } from '../../hooks/useAutoSubmitFromPath';
+import type { UseExplainFlowReturn } from '../../hooks/useExplainFlow';
 import { DesktopHome } from '../DesktopHome';
 import { DesktopLoading } from '../DesktopLoading';
 import { DesktopOverview } from '../DesktopOverview';
@@ -11,14 +10,12 @@ type Theme = 'light' | 'dark';
 interface DesktopAppProps {
   theme: Theme;
   onToggleTheme: () => void;
+  explain: UseExplainFlowReturn;
+  defaultQuery?: string;
 }
 
-export function DesktopApp({ theme, onToggleTheme }: DesktopAppProps) {
-  const explain = useExplainFlow();
+export function DesktopApp({ theme, onToggleTheme, explain, defaultQuery }: DesktopAppProps) {
   const [openDiagram, setOpenDiagram] = useState<{ code: string; diagramId: string } | null>(null);
-  const [defaultQuery, setDefaultQuery] = useState<string | undefined>(undefined);
-
-  useAutoSubmitFromPath(explain.submit, (query) => setDefaultQuery(query));
 
   // Same derived-screen approach as MobileApp: loading while in flight, overview once a
   // result lands (including an instant cache hit), home otherwise. "diagram" is a

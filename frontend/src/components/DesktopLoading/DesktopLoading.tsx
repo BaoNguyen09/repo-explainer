@@ -41,7 +41,9 @@ export function DesktopLoading({
     ? EXPLAIN_STAGE_ORDER.indexOf(currentStage as (typeof EXPLAIN_STAGE_ORDER)[number])
     : -1;
   const currentIndex = realStageIndex === -1 ? 0 : realStageIndex + 1;
-  const progressPct = Math.min(10 + currentIndex * 22, 96);
+  // currentIndex is how many steps are already done; STEPS.length is the total
+  // (the screen unmounts before the last one "completes", so this never hits 100%).
+  const progressPct = Math.round((currentIndex / STEPS.length) * 100);
 
   return (
     <div className="dl-screen">

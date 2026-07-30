@@ -81,7 +81,8 @@
 }
 
 .do-reading-inner {
-  max-width: 680px;
+  max-width: 820px;
+  margin: 0 auto;
 }
 
 .do-reading-inner .markdown-content {
@@ -134,4 +135,23 @@
 .do-ask-btn:hover {
   transform: translate(-1px, -1px);
   box-shadow: 5px 5px 0 var(--color-shadow);
+}
+
+/* Below this, .do-reading's flex-basis:0% loses the fight against the
+   rail's fixed 400px and gets squeezed to nothing. Stack instead. */
+@media (max-width: 900px) {
+  .do-body {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .do-reading {
+    overflow: visible;
+  }
+
+  .do-rail {
+    width: 100%;
+    border-left: none;
+    border-top: 3px solid var(--color-divider);
+  }
 }

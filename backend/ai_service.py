@@ -11,10 +11,13 @@ from backend.prompts import (
     FILES_TO_EXPLORE_SYSTEM,
     build_files_to_explore_user,
     parse_paths_from_response,
+    SUGGEST_QUESTIONS_SYSTEM,
+    build_suggest_questions_user,
+    parse_questions_from_response,
 )
 from backend.schema import RepoInfo
 
-__all__ = ["get_files_to_explore", "explain_repo"]
+__all__ = ["get_files_to_explore", "explain_repo", "suggest_questions"]
 
 
 _provider: Optional[LLMProvider] = None
@@ -152,4 +155,37 @@ async def explain_repo(
     except Exception as e:
         utils.logger.exception("ai_service.explain_repo(): %s", e)
         return str(e), False
+
+
+async def suggest_questions(explanation: str, tree: str = "") -> List[str]:
+    """
+    Ask the configured provider for 3 short follow-up questions based on a
+    repo's explanation and (optionally) its directory tree. Returns an empty
+    list on any failure so callers can fall back to generic defaults instead
+    of surfacing an error.
+    """
+    try:
+        provider = _get_provider()
+        response = await with_ai_retry(
+            "suggest_questions",
+            lambda: provider.call_llm(
+                SUGGEST_QUESTIONS_SYSTEM,
+                build_suggest_questions_user(explanation, tree),
+                max_tokens=500,
+                thinking_level="low",
+            ),
+        )
+        questions = parse_questions_from_response(response)
+        # A truncated/partial response (e.g. cut off mid-question) is worse than none —
+        # callers treat a non-empty list as "good", so don't hand back fewer than 3.
+        if len(questions) < 3:
+            utils.logger.warning(
+                "ai_service.suggest_questions: got %d questions (expected 3), falling back to empty list",
+                len(questions),
+            )
+            return []
+        return questions
+    except Exception as e:
+        utils.logger.warning("ai_service.suggest_questions failed: %s, falling back to empty list", e)
+        return []
 

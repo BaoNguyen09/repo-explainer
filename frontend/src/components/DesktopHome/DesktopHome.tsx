@@ -98,9 +98,7 @@ export function DesktopHome({ theme, onToggleTheme, error, defaultQuery, onSubmi
 
       <div className="dh-body">
         <div className="dh-card">
-          <h1 className="dh-title">
-            Understand any repository <span className="dh-sparkle">✨</span>
-          </h1>
+          <h1 className="dh-title">Understand any repository</h1>
           <p className="dh-subtitle">
             Get AI explanations of any GitHub repository.
           </p>

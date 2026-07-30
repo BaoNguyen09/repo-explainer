@@ -4,6 +4,7 @@ export type FormResult = {
   timestamp: string;
   cache: boolean;
   default_branch: string;
+  suggested_questions?: string[];
 };
 
 export type ChatMessage = {

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { MarkdownRenderer } from '../MarkdownRenderer';
 import { MermaidDiagramPreview } from '../MermaidDiagram/MermaidDiagramPreview';
 import { DesktopChatPanel } from '../DesktopChatPanel';
@@ -18,6 +18,9 @@ interface DesktopOverviewProps {
 }
 
 const DIAGRAM_ID = 'overview-architecture';
+const RAIL_MIN_WIDTH = 320;
+const RAIL_MAX_WIDTH = 720;
+const RAIL_DEFAULT_WIDTH = 400;
 
 export function DesktopOverview({
   data,
@@ -30,8 +33,22 @@ export function DesktopOverview({
 }: DesktopOverviewProps) {
   const [copied, setCopied] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  const [railWidth, setRailWidth] = useState(RAIL_DEFAULT_WIDTH);
+  const resizeStartRef = useRef({ x: 0, width: RAIL_DEFAULT_WIDTH });
   const repoName = `${owner}/${repo}`;
   const diagramCode = extractFirstMermaidBlock(data.explanation);
+
+  const handleResizeStart = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    resizeStartRef.current = { x: e.clientX, width: railWidth };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }, [railWidth]);
+
+  const handleResizeMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
+    const { x, width } = resizeStartRef.current;
+    const next = width + (x - e.clientX);
+    setRailWidth(Math.min(RAIL_MAX_WIDTH, Math.max(RAIL_MIN_WIDTH, next)));
+  }, []);
 
   const copyAll = async () => {
     try {
@@ -90,7 +107,15 @@ export function DesktopOverview({
           </div>
         </div>
 
-        <div className="do-rail">
+        <div className="do-rail" style={{ width: railWidth }}>
+          <div
+            className="do-rail-resize-handle"
+            onPointerDown={handleResizeStart}
+            onPointerMove={handleResizeMove}
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize panel"
+          />
           {chatOpen ? (
             <DesktopChatPanel
               owner={owner}

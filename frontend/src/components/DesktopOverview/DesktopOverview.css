@@ -76,6 +76,7 @@
 
 .do-reading {
   flex: 1;
+  min-width: 0;
   overflow-y: auto;
   padding: 32px 40px;
 }
@@ -90,13 +91,30 @@
 }
 
 .do-rail {
-  width: 400px;
+  position: relative;
   flex-shrink: 0;
   border-left: 3px solid var(--color-divider);
   background-color: var(--color-bg-elevated);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+.do-rail-resize-handle {
+  position: absolute;
+  left: -4px;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  cursor: col-resize;
+  touch-action: none;
+  z-index: 1;
+}
+
+.do-rail-resize-handle:hover,
+.do-rail-resize-handle:active {
+  background-color: var(--color-accent);
+  opacity: 0.3;
 }
 
 .do-rail-default {
@@ -150,8 +168,13 @@
   }
 
   .do-rail {
-    width: 100%;
+    /* Overrides the inline resize width — stacked layout isn't resizable. */
+    width: 100% !important;
     border-left: none;
     border-top: 3px solid var(--color-divider);
+  }
+
+  .do-rail-resize-handle {
+    display: none;
   }
 }

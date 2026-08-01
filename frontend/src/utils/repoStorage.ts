@@ -95,6 +95,29 @@ export function loadStoredRepoState(owner: string, repo: string): StoredRepoStat
   return parseStoredRepoState(localStorage.getItem(getStorageKey(owner, repo)));
 }
 
+export type RecentRepo = { repo: string; updatedAt: string };
+
+/** Cached repos, newest first, for the Home screen's "Recent repos" list. */
+export function listRecentRepos(): RecentRepo[] {
+  pruneRepoEntries();
+  const entries: RecentRepo[] = [];
+
+  for (let index = 0; index < localStorage.length; index += 1) {
+    const key = localStorage.key(index);
+    if (!key || !key.startsWith(STORAGE_PREFIX)) continue;
+    const parsed = parseStoredRepoState(localStorage.getItem(key));
+    if (parsed) entries.push({ repo: parsed.repo, updatedAt: parsed.updatedAt });
+  }
+
+  return entries.sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
+}
+
+/** "created Nd ago" label for a Recent repos card, relative to `updatedAt`. */
+export function formatCreatedLabel(updatedAt: string): string {
+  const days = Math.floor((Date.now() - Date.parse(updatedAt)) / (24 * 60 * 60 * 1000));
+  return days <= 0 ? 'created today' : `created ${days}d ago`;
+}
+
 export function saveStoredRepoState(state: StoredRepoState): void {
   const key = `${STORAGE_PREFIX}${state.repo}`;
   pruneRepoEntries(key);

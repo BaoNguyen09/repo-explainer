@@ -102,10 +102,13 @@
 
 .do-rail-resize-handle {
   position: absolute;
-  left: -4px;
+  left: -7px;
   top: 0;
   bottom: 0;
-  width: 8px;
+  width: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: col-resize;
   touch-action: none;
   z-index: 1;
@@ -113,8 +116,19 @@
 
 .do-rail-resize-handle:hover,
 .do-rail-resize-handle:active {
-  background-color: var(--color-accent);
-  opacity: 0.3;
+  background-color: rgba(249, 115, 22, 0.15);
+}
+
+.do-rail-resize-grip {
+  color: var(--color-text-muted);
+  opacity: 0;
+  transition: opacity 0.15s;
+  pointer-events: none;
+}
+
+.do-rail-resize-handle:hover .do-rail-resize-grip,
+.do-rail-resize-handle:active .do-rail-resize-grip {
+  opacity: 1;
 }
 
 .do-rail-default {

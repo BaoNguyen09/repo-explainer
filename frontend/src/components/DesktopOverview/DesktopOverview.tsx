@@ -115,7 +115,16 @@ export function DesktopOverview({
             role="separator"
             aria-orientation="vertical"
             aria-label="Resize panel"
-          />
+          >
+            <svg className="do-rail-resize-grip" width="12" height="28" viewBox="0 0 12 28" fill="currentColor" aria-hidden="true">
+              <circle cx="3" cy="4" r="1.8" />
+              <circle cx="9" cy="4" r="1.8" />
+              <circle cx="3" cy="14" r="1.8" />
+              <circle cx="9" cy="14" r="1.8" />
+              <circle cx="3" cy="24" r="1.8" />
+              <circle cx="9" cy="24" r="1.8" />
+            </svg>
+          </div>
           {chatOpen ? (
             <DesktopChatPanel
               owner={owner}

@@ -243,9 +243,10 @@
 }
 
 .mh-history-header {
+  position: relative;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   margin-bottom: 10px;
 }
 
@@ -258,6 +259,8 @@
 }
 
 .mh-history-toggle {
+  position: absolute;
+  right: 0;
   background: none;
   border: none;
   padding: 0;

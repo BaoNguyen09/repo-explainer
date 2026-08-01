@@ -34,6 +34,7 @@ interface DesktopHomeProps {
 }
 
 const HISTORY_VISIBLE_COUNT = 4;
+const HISTORY_CARDS_PER_ROW = 4;
 
 export function DesktopHome({ theme, onToggleTheme, error, defaultQuery, onSubmit }: DesktopHomeProps) {
   const [showInstructions, setShowInstructions] = useState(false);
@@ -43,6 +44,7 @@ export function DesktopHome({ theme, onToggleTheme, error, defaultQuery, onSubmi
   );
   const inputRef = useRef<HTMLInputElement>(null);
   const instructionsRef = useRef<HTMLTextAreaElement>(null);
+  const visibleHistory = historyExpanded ? history : history.slice(0, HISTORY_VISIBLE_COUNT);
 
   const badgeTheme = theme === 'dark' ? 'neutral' : 'light';
   const badgeSrc = `https://api.producthunt.com/widgets/embed-image/v1/follow.svg?product_id=1164116&theme=${badgeTheme}`;
@@ -175,8 +177,14 @@ export function DesktopHome({ theme, onToggleTheme, error, defaultQuery, onSubmi
                   </button>
                 )}
               </div>
-              <div className={`dh-history-grid${historyExpanded ? ' dh-history-grid-expanded' : ''}`}>
-                {(historyExpanded ? history : history.slice(0, HISTORY_VISIBLE_COUNT)).map((h) => (
+              <div
+                className={[
+                  'dh-history-grid',
+                  historyExpanded ? 'dh-history-grid-expanded' : '',
+                  visibleHistory.length > HISTORY_CARDS_PER_ROW ? 'dh-history-grid-left' : 'dh-history-grid-center',
+                ].filter(Boolean).join(' ')}
+              >
+                {visibleHistory.map((h) => (
                   <button
                     key={h.name}
                     type="button"

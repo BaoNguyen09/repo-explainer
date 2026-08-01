@@ -287,11 +287,21 @@
 .dh-history-grid {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
   gap: 8px;
   width: 616px;
   max-width: 100%;
   margin: 0 auto;
+}
+
+/* A single under-filled row reads as centered content on the page.
+   Multiple rows: rows are left-aligned so a trailing partial row starts
+   at the left, under the full row(s) above, instead of floating centered. */
+.dh-history-grid-center {
+  justify-content: center;
+}
+
+.dh-history-grid-left {
+  justify-content: flex-start;
 }
 
 .dh-history-grid-expanded {

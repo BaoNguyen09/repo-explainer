@@ -31,6 +31,7 @@ interface MobileHomeProps {
 }
 
 const HISTORY_VISIBLE_COUNT = 4;
+const HISTORY_CARDS_PER_ROW = 2;
 
 export function MobileHome({ theme, onToggleTheme, error, defaultQuery, onSubmit }: MobileHomeProps) {
   const [showInstructions, setShowInstructions] = useState(false);
@@ -41,6 +42,7 @@ export function MobileHome({ theme, onToggleTheme, error, defaultQuery, onSubmit
   );
   const inputRef = useRef<HTMLInputElement>(null);
   const instructionsRef = useRef<HTMLTextAreaElement>(null);
+  const visibleHistory = historyExpanded ? history : history.slice(0, HISTORY_VISIBLE_COUNT);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -171,8 +173,14 @@ export function MobileHome({ theme, onToggleTheme, error, defaultQuery, onSubmit
                 </button>
               )}
             </div>
-            <div className={`mh-history-grid${historyExpanded ? ' mh-history-grid-expanded' : ''}`}>
-              {(historyExpanded ? history : history.slice(0, HISTORY_VISIBLE_COUNT)).map((h) => (
+            <div
+              className={[
+                'mh-history-grid',
+                historyExpanded ? 'mh-history-grid-expanded' : '',
+                visibleHistory.length > HISTORY_CARDS_PER_ROW ? 'mh-history-grid-left' : 'mh-history-grid-center',
+              ].filter(Boolean).join(' ')}
+            >
+              {visibleHistory.map((h) => (
                 <button
                   key={h.name}
                   type="button"

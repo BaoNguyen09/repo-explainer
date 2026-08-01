@@ -274,11 +274,18 @@
 .mh-history-grid {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
   gap: 8px;
   width: 334px;
   max-width: 100%;
   margin: 0 auto;
+}
+
+.mh-history-grid-center {
+  justify-content: center;
+}
+
+.mh-history-grid-left {
+  justify-content: flex-start;
 }
 
 .mh-history-grid-expanded {

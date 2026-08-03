@@ -39,6 +39,9 @@ EXPLAIN_JOB_MAX_RUNTIME_SECONDS: int = int(os.environ.get("EXPLAIN_JOB_MAX_RUNTI
 # already running does not count, so reloading a page costs no quota.
 EXPLAIN_RATE_LIMIT_JOBS: int = int(os.environ.get("EXPLAIN_RATE_LIMIT_JOBS", "20"))
 EXPLAIN_RATE_LIMIT_WINDOW_SECONDS: int = int(os.environ.get("EXPLAIN_RATE_LIMIT_WINDOW_SECONDS", "86400"))
+# Burst ceiling on *requests* to the stream endpoint, reconnects included. Sized
+# to leave normal reload/retry behaviour untouched while capping connection spam.
+EXPLAIN_STREAM_REQUEST_RATE_LIMIT: str = os.environ.get("EXPLAIN_STREAM_REQUEST_RATE_LIMIT", "30/minute")
 
 # Chat
 CHAT_MAX_MESSAGE_LENGTH: int = int(os.environ.get("CHAT_MAX_MESSAGE_LENGTH", "1000"))

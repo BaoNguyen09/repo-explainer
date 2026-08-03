@@ -287,6 +287,39 @@ def test_new_job_beyond_limit_is_rate_limited(monkeypatch):
     asyncio.run(scenario())
 
 
+def test_rate_limit_is_charged_before_the_outbound_github_call(monkeypatch):
+    """Validation is the expensive part of a rejected request, so quota comes first."""
+    validations = {"count": 0}
+
+    async def counting_validate(owner, repo):
+        validations["count"] += 1
+        return None
+
+    monkeypatch.setattr(main, "_validate_repo_exists", counting_validate)
+    _stub_pipeline(monkeypatch, [{"error": "done"}])
+    monkeypatch.setattr(main.env, "EXPLAIN_RATE_LIMIT_JOBS", 1)
+    main._explain_rate_windows.clear()
+
+    async def scenario():
+        await _collect(main._stream_generator("a", "b", None, None, _fake_request()))
+        assert validations["count"] == 1
+
+        chunks = await _collect(main._stream_generator("c", "d", None, None, _fake_request()))
+        assert any("Rate limit exceeded" in chunk for chunk in chunks)
+        # The rejected request must not have reached github.com.
+        assert validations["count"] == 1
+
+    asyncio.run(scenario())
+
+
+def test_stream_endpoint_keeps_a_request_rate_limit():
+    """Attaching to a job is free of *job* quota but must still be capped as request
+    volume — otherwise reconnects are an uncapped way to open connections."""
+    limits = main.limiter._route_limits.get("backend.main.explain_repo_stream")
+    assert limits, "stream endpoint must still carry a slowapi request limit"
+    assert str(limits[0].limit) == "30 per 1 minute"
+
+
 def test_invalid_repo_never_creates_a_job(monkeypatch):
     _stub_validation(monkeypatch, detail="Repository 'x/y' not found.")
 

@@ -594,15 +594,18 @@ async def _stream_generator(
     started_here = False
 
     if job is None or (job.done and not resume):
-        # New run: validate first so a bad URL fails fast, before a job exists.
+        # Charged before the outbound GitHub call, not after: validation is the
+        # expensive part of a rejected request, so checking quota afterwards
+        # would let a caller drive unlimited github.com traffic for free.
+        if _is_explain_rate_limited(get_remote_address(request)):
+            yield _sse_event("error", {"detail": "Rate limit exceeded. Please try again later."})
+            return
+
+        # Validate before a job exists so a bad URL fails fast and cheaply.
         yield _sse_event("status", {"stage": "validating"})
         detail = await _validate_repo_exists(owner, repo)
         if detail:
             yield _sse_event("error", {"detail": detail})
-            return
-
-        if _is_explain_rate_limited(get_remote_address(request)):
-            yield _sse_event("error", {"detail": "Rate limit exceeded. Please try again later."})
             return
 
         snapshot = _RequestSnapshot(request)
@@ -836,6 +839,7 @@ async def chat_websocket(
         500: {"description": "Internal server error"},
     },
 )
+@limiter.limit(env.EXPLAIN_STREAM_REQUEST_RATE_LIMIT)
 async def explain_repo_stream(
     request: Request,
     owner: str,
@@ -846,8 +850,15 @@ async def explain_repo_stream(
 ):
     """SSE endpoint: streams status events then result or error.
 
-    Not decorated with slowapi — see `_is_explain_rate_limited`, which charges
-    quota only when this request actually starts new work.
+    Two limits apply, because connection count and work done are no longer the
+    same thing once a job outlives its connection:
+
+    * the decorator caps *requests*, including reconnects, so attaching to an
+      existing job can't be used to open connections without bound;
+    * `_is_explain_rate_limited` caps *new jobs* (see `_stream_generator`), so
+      reloading during a long run costs nothing against the daily budget.
+
+    The decorator's limit is therefore a burst ceiling, not a daily quota.
     """
     return StreamingResponse(
         _stream_generator(owner, repo, ref, instructions, request, resume=resume),

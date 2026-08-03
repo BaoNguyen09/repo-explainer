@@ -122,22 +122,73 @@ test('a resumed job that finishes delivers its result to the screen', async () =
   harness.unmount();
 });
 
-test('older pending jobs are followed in the background while the newest owns the screen', async () => {
+test('only the newest pending job is resumed, so stale records cost nothing', async () => {
   savePendingJob('facebook', 'react', '');
   await new Promise((resolve) => setTimeout(resolve, 5));
   savePendingJob('octocat', 'Hello-World', '');
 
   const harness = await mountFlow();
 
-  expect(FakeEventSource.instances).toHaveLength(2);
+  // The backend restarts a job it can't find, so auto-reconnecting to the older
+  // record risks paying for a full run nobody is waiting for.
+  expect(FakeEventSource.instances).toHaveLength(1);
+  expect(FakeEventSource.latest.url).toContain('/octocat/Hello-World/stream');
   expect(harness.flow().parsedRepo).toMatchObject({ repo: 'Hello-World' });
 
-  const background = FakeEventSource.instances.find((es) => es.url.includes('/facebook/react/'))!;
+  harness.unmount();
+});
+
+test('a connection drop keeps the pending record so the job can be picked up again', async () => {
+  const harness = await mountFlow();
+
+  await act(async () => {
+    harness.flow().submit('https://github.com/octocat/Hello-World', '');
+  });
+  expect(listPendingJobs()).toHaveLength(1);
+
+  // Transport failure: says nothing about whether the job is still running.
+  await act(async () => {
+    FakeEventSource.latest.onerror?.();
+  });
+
+  expect(harness.flow().error).toBeTruthy();
+  expect(listPendingJobs()).toHaveLength(1);
+
+  harness.unmount();
+});
+
+test('a server-sent failure is terminal and drops the pending record', async () => {
+  const harness = await mountFlow();
+
+  await act(async () => {
+    harness.flow().submit('https://github.com/octocat/Hello-World', '');
+  });
+
+  await act(async () => {
+    FakeEventSource.latest.emit('error', { detail: "Repository 'octocat/Hello-World' not found." });
+  });
+
+  expect(harness.flow().error).toContain('not found');
+  expect(listPendingJobs()).toEqual([]);
+
+  harness.unmount();
+});
+
+test('a backgrounded run still caches its result without hijacking the screen', async () => {
+  const harness = await mountFlow();
+
+  await act(async () => {
+    harness.flow().submit('https://github.com/facebook/react', '');
+  });
+  const background = FakeEventSource.latest;
+
+  await act(async () => {
+    harness.flow().runInBackground();
+  });
   await act(async () => {
     background.emit('result', { ...RESULT_PAYLOAD, repo: 'facebook/react' });
   });
 
-  // Cached for later, but it never hijacks the screen from the repo in front.
   expect(loadStoredRepoState('facebook', 'react')?.explanation).toBe('This repo does things.');
   expect(harness.flow().resultData).toBeNull();
 

@@ -92,11 +92,10 @@ function permissionGranted(): boolean {
  * start a second repo without throwing the first one away.
  */
 export function useExplainFlow(): UseExplainFlowReturn {
-  // Read once, at mount: jobs a previous page load left running on the server.
-  // Used as the *initial* state rather than applied from an effect so the very
-  // first render already shows the loading screen for the repo being resumed.
-  const [resumable] = useState(listPendingJobs);
-  const resuming = resumable[0];
+  // Read once, at mount: the most recent job a previous page load left running
+  // on the server. Used as the *initial* state rather than applied from an
+  // effect so the very first render already shows the loading screen for it.
+  const [resuming] = useState(() => listPendingJobs()[0]);
 
   const [isLoading, setIsLoading] = useState(Boolean(resuming));
   const [resultData, setResultData] = useState<FormResult | null>(null);
@@ -203,9 +202,21 @@ export function useExplainFlow(): UseExplainFlowReturn {
         };
       };
 
-      const finishStream = () => {
+      /**
+       * Stop watching this stream.
+       *
+       * `jobFinished` is deliberately separate from "the connection ended".
+       * They were the same thing when the connection *was* the job, but a job
+       * now outlives its connection: a transport failure means the run is very
+       * likely still going, which is exactly the case the pending record exists
+       * to remember. Clearing it there would delete the only pointer back to
+       * work still being paid for, and the next load would start it over.
+       */
+      const finishStream = (jobFinished: boolean) => {
         es.close();
-        clearPendingJob(parsed.owner, parsed.repo, instructions);
+        if (jobFinished) {
+          clearPendingJob(parsed.owner, parsed.repo, instructions);
+        }
         if (esRef.current === es) {
           esRef.current = null;
           streamHandleRef.current = null;
@@ -277,10 +288,15 @@ export function useExplainFlow(): UseExplainFlowReturn {
           trackFailure('invalid_response');
           notifyDone(`${parsed.owner}/${parsed.repo} explanation failed ❌`);
         }
-        finishStream();
+        finishStream(true);
       });
 
       es.addEventListener('error', (event: MessageEvent) => {
+        // This listener fires for two unrelated things: a server-sent
+        // `event: error` frame, which carries data and means the job really
+        // failed, and a native transport error, which carries none and says
+        // nothing about whether the job is still running.
+        const serverSent = Boolean(event.data);
         try {
           if (event.data) {
             const data = JSON.parse(event.data as string) as { detail?: string };
@@ -294,7 +310,7 @@ export function useExplainFlow(): UseExplainFlowReturn {
           trackFailure('server_error');
         }
         notifyDone(`${parsed.owner}/${parsed.repo} explanation failed ❌`);
-        finishStream();
+        finishStream(serverSent);
       });
 
       es.onerror = () => {
@@ -303,7 +319,9 @@ export function useExplainFlow(): UseExplainFlowReturn {
           trackFailure('connection_lost');
           notifyDone(`${parsed.owner}/${parsed.repo} explanation failed ❌`);
         }
-        finishStream();
+        // Transport-level only: the job is presumed to still be running, so the
+        // pending record survives and the next load reconnects to it.
+        finishStream(handle.gotResult);
       };
     },
     []
@@ -412,23 +430,18 @@ export function useExplainFlow(): UseExplainFlowReturn {
     );
   }, [runInBackground, startStream]);
 
-  // Re-attach to those jobs. The newest one drives the screen (it's the repo the
-  // user was watching when they reloaded); any others are followed silently so
-  // their results still reach the cache. The state they need was already set
-  // above, so this effect only opens the connections.
+  // Re-attach to the newest job only — the repo the user was watching when they
+  // reloaded. Older records are left alone on purpose: the backend restarts a
+  // job it can't find, so auto-reconnecting to a stale record would silently
+  // begin a full paid run that nobody is waiting for. Anything still genuinely
+  // running is reachable by submitting that repo again, which resumes it.
+  // The state this needs was set above, so the effect only opens the connection.
   const resumedRef = useRef(false);
   useEffect(() => {
     if (resumedRef.current || !resuming) return;
     resumedRef.current = true;
 
-    const [newest, ...rest] = resumable;
-    for (const job of rest) {
-      startStream({ owner: job.owner, repo: job.repo }, job.instructions, {
-        resume: true,
-        background: true,
-      });
-    }
-
+    const newest = resuming;
     lastSubmitRef.current = {
       query: `https://github.com/${newest.owner}/${newest.repo}`,
       instructions: newest.instructions,
@@ -439,7 +452,7 @@ export function useExplainFlow(): UseExplainFlowReturn {
       repo_full: `${newest.owner}/${newest.repo}`,
     });
     startStream({ owner: newest.owner, repo: newest.repo }, newest.instructions, { resume: true });
-  }, [resumable, resuming, startStream]);
+  }, [resuming, startStream]);
 
   const regenerate = useCallback(() => {
     if (isLoading || !lastSubmitRef.current) return;

@@ -1,0 +1,11 @@
+# Cloudflare Pages SPA fallback.
+#
+# The app reads /owner/repo deep links at runtime (see
+# src/hooks/useAutoSubmitFromPath.ts), but those paths have no file on disk, so
+# without this rule the edge returns 404 before any JavaScript loads and the
+# hook never gets a chance to run.
+#
+# Serving index.html with a 200 (not a 302) keeps the requested URL in the
+# address bar, which is what the hook parses. Real files in public/ and hashed
+# build assets still win — this only applies when nothing else matches.
+/*    /index.html   200

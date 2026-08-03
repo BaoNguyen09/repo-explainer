@@ -214,17 +214,25 @@
 
 .dcp-send-btn {
   flex-shrink: 0;
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   background-color: var(--color-accent);
   color: #ffffff;
   border: 2px solid var(--color-border);
-  border-radius: 50%;
-  font-size: 13px;
+  border-radius: 8px;
+  box-shadow: 2px 2px 0 var(--color-shadow);
+  font-size: 16px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: transform 0.1s, box-shadow 0.1s, background-color 0.2s;
+}
+
+.dcp-send-btn:hover:not(:disabled) {
+  background-color: var(--color-accent-hover);
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 var(--color-shadow);
 }
 
 .dcp-send-btn:disabled {

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { FiArrowUp } from 'react-icons/fi';
 import { useChat } from '../../hooks/useChat';
 import { useSuggestedQuestions } from '../../hooks/useSuggestedQuestions';
 import { track } from '../../config/analytics';
@@ -177,7 +178,7 @@ export function MobileChatSheet({
                 disabled={!canSend}
                 aria-label="Send message"
               >
-                →
+                <FiArrowUp />
               </button>
             </div>
           </div>

@@ -1,7 +1,10 @@
 # Repo Explainer — https://repex.thienbao.dev/
 #
-# Content signals (preserved from the Cloudflare-managed default). As a condition
-# of accessing this website, you agree to abide by the following content signals:
+# Cloudflare serves a managed robots.txt at the edge that explains the content
+# signal vocabulary but declares no values of its own — it is comments only.
+# The Content-Signal line below is therefore our own deliberate policy, not an
+# inherited default. As a condition of accessing this website, you agree to
+# abide by it:
 #   search:   building a search index and providing search results.
 #   ai-input: inputting content into one or more AI models (RAG, grounding, etc).
 #   ai-train: training or fine-tuning AI models.

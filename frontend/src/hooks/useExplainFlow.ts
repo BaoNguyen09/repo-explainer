@@ -4,6 +4,7 @@ import type { FormResult } from '../types';
 import { config } from '../config/api';
 import { track, getDistinctId } from '../config/analytics';
 import { loadStoredRepoState, saveRepoOverview } from '../utils/repoStorage';
+import { prefetchSuggestedQuestions } from './useSuggestedQuestions';
 
 const STAGE_MESSAGES: Record<string, string> = {
   validating: 'Validating repository...',
@@ -225,6 +226,9 @@ export function useExplainFlow(): UseExplainFlowReturn {
         setResultData(data);
         setIsStoredOverview(false);
         saveRepoOverview(data);
+        if (!data.suggested_questions?.length) {
+          prefetchSuggestedQuestions(parsed.owner, parsed.repo, data.explanation);
+        }
         track('explanation_rendered', {
           owner: parsed.owner,
           repo: parsed.repo,

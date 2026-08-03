@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { FiArrowRight } from 'react-icons/fi';
 import githubIcon from '../../assets/github.svg';
 import { formatCreatedLabel, listRecentRepos } from '../../utils/repoStorage';
 import './DesktopHome.css';
@@ -122,7 +123,7 @@ export function DesktopHome({ theme, onToggleTheme, error, defaultQuery, onSubmi
                 autoComplete="off"
               />
               <button type="submit" className="dh-submit-btn">
-                Explain →
+                Explain<FiArrowRight />
               </button>
             </div>
 

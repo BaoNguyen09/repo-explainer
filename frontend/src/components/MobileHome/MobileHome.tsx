@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { FiArrowRight } from 'react-icons/fi';
 import githubIcon from '../../assets/github.svg';
 import { formatCreatedLabel, listRecentRepos } from '../../utils/repoStorage';
 import './MobileHome.css';
@@ -111,7 +112,7 @@ export function MobileHome({ theme, onToggleTheme, error, defaultQuery, onSubmit
               autoComplete="off"
             />
             <button type="submit" className="mh-submit-btn" aria-label="Explain repository">
-              →
+              <FiArrowRight />
             </button>
           </div>
 

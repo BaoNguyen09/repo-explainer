@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { FiArrowLeft } from 'react-icons/fi';
 import { MarkdownRenderer } from '../MarkdownRenderer';
 import { DownloadIcon } from '../../assets/icons/DownloadIcon';
 import { downloadTextFile } from '../../utils/downloadText';
@@ -49,7 +50,7 @@ export function MobileOverview({
       <div className="mo-app-bar">
         <div className="mo-app-bar-left">
           <button type="button" className="mo-icon-btn" onClick={onBack} aria-label="Back">
-            ←
+            <FiArrowLeft />
           </button>
           <div className="mo-title-block">
             <div className="mo-title">{repoName}</div>

@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
+import { FiArrowLeft } from 'react-icons/fi';
 import { MarkdownRenderer } from '../MarkdownRenderer';
 import { MermaidDiagramPreview } from '../MermaidDiagram/MermaidDiagramPreview';
 import { DesktopChatPanel } from '../DesktopChatPanel';
@@ -72,7 +73,7 @@ export function DesktopOverview({
       <div className="do-app-bar">
         <div className="do-app-bar-left">
           <button type="button" className="do-icon-btn" onClick={onBack} aria-label="Back">
-            ←
+            <FiArrowLeft />
           </button>
           <div className="do-title-block">
             <div className="do-title">{repoName}</div>

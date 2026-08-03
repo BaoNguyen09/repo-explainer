@@ -280,7 +280,7 @@ async def explain_repo(
     explanation_chars: Optional[int] = None
     stage = "github_validation"  # advanced as the pipeline progresses; reported on error
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(follow_redirects=True) as client:
             res = await client.get(f"https://github.com/{owner}/{repo}")
             res.raise_for_status()
 
@@ -404,7 +404,7 @@ async def _run_stream_pipeline(
     files_failed_count: Optional[int] = None
     pipeline_stage = "github_validation"  # advanced as the pipeline progresses; reported on error
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(follow_redirects=True) as client:
             repo_info = RepoInfo(owner=owner, repo_name=repo)
             github_token = request.headers.get("X-GitHub-Token") or env.GITHUB_TOKEN
             if github_token == "":
@@ -511,7 +511,7 @@ async def _stream_generator(
     """Yield SSE events: status (stage), then result or error."""
     yield _sse_event("status", {"stage": "validating"})
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(follow_redirects=True) as client:
             res = await client.get(f"https://github.com/{owner}/{repo}")
             res.raise_for_status()
     except httpx.HTTPStatusError as e:
@@ -696,7 +696,7 @@ async def chat_websocket(
                 await websocket.send_json({"type": "chunk", "delta": delta})
 
             try:
-                async with httpx.AsyncClient() as client:
+                async with httpx.AsyncClient(follow_redirects=True) as client:
                     github = GitHubTools(client, github_token=github_token)
                     tree = await github.fetch_directory_tree_with_depth(repo_info, depth=3)
                     response_text = await chat_service.chat_with_repo(

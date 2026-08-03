@@ -482,7 +482,7 @@ class GitHubTools:
 
 # For testing
 async def main():
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(follow_redirects=True) as client:
         github = GitHubTools(client, github_token=None, ref=None)
         repo = RepoInfo(owner="baonguyen09", repo_name="github-second-brain")
         content, success, _tree_file_count, _files_read_count, _files_failed_count = await github.get_repo_context(repo)

@@ -66,19 +66,17 @@
   </head>
   <body>
     <div id="root"></div>
+    <!--
+      Mirrors the rendered app's h1 and subtitle so a crawler that does not run JS
+      sees the same value proposition as one that does. Keep in sync with the
+      dh-title / dh-subtitle copy in src/components/DesktopHome/DesktopHome.tsx.
+    -->
     <noscript>
-      <h1>Repo Explainer – Understand Any GitHub Repo with AI</h1>
+      <h1>Understand any repository</h1>
+      <p>Get AI explanations of any GitHub repository.</p>
       <p>
-        Repo Explainer is a free tool that explains any public GitHub repository. Paste a repo URL
-        and an AI reads the codebase for you, then returns a high-level overview: what the project
-        does, an architecture diagram showing how the pieces fit together, the tech stack it is
-        built on, and an annotated tour of the directories and key files that matter.
-      </p>
-      <p>
-        It is built for the moment you open an unfamiliar codebase and do not know where to start —
-        joining a new team, evaluating an open-source library, preparing for an interview, or making
-        a first contribution. After the overview you can ask follow-up questions about specific
-        files, flows, and implementation details.
+        Paste a GitHub repo URL and Repo Explainer returns an architecture diagram, the tech
+        stack, and an annotated directory tree, then answers follow-up questions about the code.
       </p>
       <p>
         This app requires JavaScript to run. Enable JavaScript to explain a repository, or

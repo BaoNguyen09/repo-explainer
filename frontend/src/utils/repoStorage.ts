@@ -36,6 +36,10 @@ function parseStoredRepoState(raw: string | null): StoredRepoState | null {
       return null;
     }
 
+    const suggestedQuestions = Array.isArray(parsed.suggestedQuestions)
+      ? parsed.suggestedQuestions.filter((q): q is string => typeof q === 'string')
+      : undefined;
+
     return {
       version: parsed.version,
       repo: parsed.repo,
@@ -44,6 +48,7 @@ function parseStoredRepoState(raw: string | null): StoredRepoState | null {
       messages: parsed.messages,
       style: parsed.style,
       updatedAt: parsed.updatedAt,
+      suggestedQuestions,
     };
   } catch {
     return null;
@@ -133,7 +138,16 @@ export function saveRepoOverview(result: FormResult): void {
     messages: [],
     style: 'caveman',
     updatedAt: new Date().toISOString(),
+    suggestedQuestions: result.suggested_questions,
   });
+}
+
+/** Persists suggestions fetched as a one-off fallback so a chat reopen reuses them
+ *  instead of asking the LLM again — until the repo overview is regenerated. */
+export function saveSuggestedQuestions(owner: string, repo: string, questions: string[]): void {
+  const existing = loadStoredRepoState(owner, repo);
+  if (!existing) return;
+  saveStoredRepoState({ ...existing, suggestedQuestions: questions });
 }
 
 export function clearStoredRepoMessages(owner: string, repo: string): void {
@@ -155,6 +169,7 @@ export function createUpdatedRepoState(
   messages: ChatMessage[],
   style: ChatStyle,
 ): StoredRepoState {
+  const existing = loadStoredRepoState(owner, repo);
   return {
     version: STORAGE_VERSION,
     repo: `${owner}/${repo}`,
@@ -163,5 +178,6 @@ export function createUpdatedRepoState(
     messages,
     style,
     updatedAt: new Date().toISOString(),
+    suggestedQuestions: existing?.suggestedQuestions,
   };
 }

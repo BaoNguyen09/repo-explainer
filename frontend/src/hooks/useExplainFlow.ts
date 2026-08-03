@@ -156,6 +156,7 @@ export function useExplainFlow(): UseExplainFlowReturn {
           timestamp: stored.updatedAt,
           cache: true,
           default_branch: stored.defaultBranch,
+          suggested_questions: stored.suggestedQuestions,
         });
         setIsStoredOverview(true);
         setIsLoading(false);

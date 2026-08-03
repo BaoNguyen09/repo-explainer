@@ -57,6 +57,7 @@ export function DesktopApp({ theme, onToggleTheme, explain, defaultQuery }: Desk
           notifyEnabled={explain.notifyEnabled}
           notifySupported={explain.notifySupported}
           onEnableNotify={explain.enableNotifications}
+          onRunInBackground={explain.runInBackground}
           onCancel={explain.cancel}
         />
       )}

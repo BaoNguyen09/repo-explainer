@@ -65,6 +65,7 @@ export function MobileApp({ theme, onToggleTheme, explain, defaultQuery }: Mobil
           notifyEnabled={explain.notifyEnabled}
           notifySupported={explain.notifySupported}
           onEnableNotify={explain.enableNotifications}
+          onRunInBackground={explain.runInBackground}
           onCancel={explain.cancel}
         />
       )}

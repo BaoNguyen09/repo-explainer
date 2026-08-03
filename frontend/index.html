@@ -5,29 +5,84 @@
     <link rel="icon" type="image/png" href="/logo.png" />
     <link rel="canonical" href="https://repex.thienbao.dev/" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Get AI explanations of any GitHub repository. Paste a repo URL and see a high-level overview instantly." />
-    <!-- Open Graph (LinkedIn, Facebook, etc.) -->
+    <meta name="description" content="Paste a GitHub repo URL and get an instant AI explanation: architecture diagram, tech stack, and directory structure. Understand any codebase in minutes." />
+    <!-- Open Graph (LinkedIn, Facebook, WhatsApp, Telegram, Discord, etc.) -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://repex.thienbao.dev/" />
-    <meta property="og:title" content="Repo Explainer – AI GitHub repo summarizer" />
-    <meta property="og:description" content="Get AI explanations of any GitHub repository. Paste a repo URL and see a high-level overview instantly." />
-    <meta property="og:image" content="https://repex.thienbao.dev/og-image.png" />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
+    <meta property="og:title" content="Repo Explainer – Understand Any GitHub Repo with AI" />
+    <meta property="og:description" content="Paste a GitHub repo URL and get an instant AI explanation: architecture diagram, tech stack, and directory structure. Understand any codebase in minutes." />
+    <meta property="og:image" content="https://repex.thienbao.dev/image-og.png" />
+    <meta property="og:image:width" content="1536" />
+    <meta property="og:image:height" content="1024" />
+    <meta property="og:image:alt" content="Repo Explainer – AI explanations for any GitHub repository" />
     <meta property="og:site_name" content="Repo Explainer" />
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Repo Explainer – AI GitHub repo summarizer" />
-    <meta name="twitter:description" content="Get AI explanations of any GitHub repository. Paste a repo URL and see a high-level overview instantly." />
-    <meta name="twitter:image" content="https://repex.thienbao.dev/og-image.png" />
+    <meta name="twitter:title" content="Repo Explainer – Understand Any GitHub Repo with AI" />
+    <meta name="twitter:description" content="Paste a GitHub repo URL and get an instant AI explanation: architecture diagram, tech stack, and directory structure. Understand any codebase in minutes." />
+    <meta name="twitter:image" content="https://repex.thienbao.dev/image-og.png" />
+    <meta name="twitter:image:alt" content="Repo Explainer – AI explanations for any GitHub repository" />
     <!-- Cloudflare Web Analytics -->
     <script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "fafedeeb98044ae594a1475e7d85d90e"}'></script>
     <!-- Google Search Console verification -->
     <meta name="google-site-verification" content="iKxlknV-EHIhbiDsQl78li8uiIxTcg520USINsA1Rtk" />
-    <title>Repo Explainer – AI GitHub repo summaries</title>
+    <title>Repo Explainer – Understand Any GitHub Repo with AI</title>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Repo Explainer",
+        "alternateName": "RepoExplainer",
+        "url": "https://repex.thienbao.dev/",
+        "description": "Paste a GitHub repo URL and get an instant AI explanation: architecture diagram, tech stack, and directory structure. Understand any codebase in minutes.",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "Any",
+        "browserRequirements": "Requires JavaScript",
+        "image": "https://repex.thienbao.dev/image-og.png",
+        "screenshot": "https://repex.thienbao.dev/image-og.png",
+        "featureList": [
+          "AI-generated high-level explanation of any public GitHub repository",
+          "Architecture diagram of how the codebase fits together",
+          "Tech stack and dependency breakdown",
+          "Annotated directory tree of key files",
+          "Follow-up chat to ask questions about the repository"
+        ],
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "author": {
+          "@type": "Person",
+          "name": "Bao Nguyen",
+          "url": "https://thienbao.dev"
+        },
+        "sameAs": [
+          "https://github.com/BaoNguyen09/repo-explainer",
+          "https://www.producthunt.com/products/repo-explainer"
+        ]
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
+    <!--
+      Mirrors the rendered app's h1 and subtitle so a crawler that does not run JS
+      sees the same value proposition as one that does. Keep in sync with the
+      dh-title / dh-subtitle copy in src/components/DesktopHome/DesktopHome.tsx.
+    -->
+    <noscript>
+      <h1>Understand any repository</h1>
+      <p>Get AI explanations of any GitHub repository.</p>
+      <p>
+        Paste a GitHub repo URL and Repo Explainer returns an architecture diagram, the tech
+        stack, and an annotated directory tree, then answers follow-up questions about the code.
+      </p>
+      <p>
+        This app requires JavaScript to run. Enable JavaScript to explain a repository, or
+        <a href="https://github.com/BaoNguyen09/repo-explainer">view the source on GitHub</a>.
+      </p>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

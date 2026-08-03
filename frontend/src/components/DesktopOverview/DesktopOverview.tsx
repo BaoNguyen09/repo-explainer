@@ -1,7 +1,10 @@
-import { useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
+import { FiArrowLeft } from 'react-icons/fi';
 import { MarkdownRenderer } from '../MarkdownRenderer';
 import { MermaidDiagramPreview } from '../MermaidDiagram/MermaidDiagramPreview';
 import { DesktopChatPanel } from '../DesktopChatPanel';
+import { DownloadIcon } from '../../assets/icons/DownloadIcon';
+import { GripIcon } from '../../assets/icons/GripIcon';
 import { downloadTextFile } from '../../utils/downloadText';
 import { extractFirstMermaidBlock } from '../../utils/extractMermaid';
 import type { FormResult } from '../../types';
@@ -18,6 +21,9 @@ interface DesktopOverviewProps {
 }
 
 const DIAGRAM_ID = 'overview-architecture';
+const RAIL_MIN_WIDTH = 320;
+const RAIL_MAX_WIDTH = 720;
+const RAIL_DEFAULT_WIDTH = 400;
 
 export function DesktopOverview({
   data,
@@ -30,8 +36,22 @@ export function DesktopOverview({
 }: DesktopOverviewProps) {
   const [copied, setCopied] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
+  const [railWidth, setRailWidth] = useState(RAIL_DEFAULT_WIDTH);
+  const resizeStartRef = useRef({ x: 0, width: RAIL_DEFAULT_WIDTH });
   const repoName = `${owner}/${repo}`;
   const diagramCode = extractFirstMermaidBlock(data.explanation);
+
+  const handleResizeStart = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    resizeStartRef.current = { x: e.clientX, width: railWidth };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }, [railWidth]);
+
+  const handleResizeMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
+    const { x, width } = resizeStartRef.current;
+    const next = width + (x - e.clientX);
+    setRailWidth(Math.min(RAIL_MAX_WIDTH, Math.max(RAIL_MIN_WIDTH, next)));
+  }, []);
 
   const copyAll = async () => {
     try {
@@ -53,7 +73,7 @@ export function DesktopOverview({
       <div className="do-app-bar">
         <div className="do-app-bar-left">
           <button type="button" className="do-icon-btn" onClick={onBack} aria-label="Back">
-            ←
+            <FiArrowLeft />
           </button>
           <div className="do-title-block">
             <div className="do-title">{repoName}</div>
@@ -65,11 +85,7 @@ export function DesktopOverview({
             {copied ? '✓' : '⧉'}
           </button>
           <button type="button" className="do-icon-btn" onClick={download} title="Download .txt" aria-label="Download .txt">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="7 10 12 15 17 10" />
-              <line x1="12" y1="3" x2="12" y2="15" />
-            </svg>
+            <DownloadIcon />
           </button>
           <button type="button" className="do-icon-btn" onClick={onRegenerate} title="Regenerate" aria-label="Regenerate">
             ↻
@@ -90,7 +106,17 @@ export function DesktopOverview({
           </div>
         </div>
 
-        <div className="do-rail">
+        <div className="do-rail" style={{ width: railWidth }}>
+          <div
+            className="do-rail-resize-handle"
+            onPointerDown={handleResizeStart}
+            onPointerMove={handleResizeMove}
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize panel"
+          >
+            <GripIcon className="do-rail-resize-grip" />
+          </div>
           {chatOpen ? (
             <DesktopChatPanel
               owner={owner}

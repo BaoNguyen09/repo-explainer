@@ -424,10 +424,13 @@ class GitHubTools:
 
             # Context #2: File content (agentic: LLM suggests paths + IMPORTANT_FILES, fetch in parallel)
             result = await self.list_directory_files(repo, "")
-            if not result[1] or not result[0]:
+            if not result[1]:
                 return "Error with getting files at root directory", False, tree_file_count, 0, 0
 
-            files_at_root = set(result[0])
+            # An empty list here is a legitimate result (e.g. root holds only
+            # subdirectories), not a failure — fall through to the LLM-suggested
+            # paths instead of aborting the whole pipeline.
+            files_at_root = set(result[0] or [])
             root_important = [f for f in self.IMPORTANT_FILES if f in files_at_root]
 
             if status_callback:

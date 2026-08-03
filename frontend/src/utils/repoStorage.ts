@@ -36,6 +36,10 @@ function parseStoredRepoState(raw: string | null): StoredRepoState | null {
       return null;
     }
 
+    const suggestedQuestions = Array.isArray(parsed.suggestedQuestions)
+      ? parsed.suggestedQuestions.filter((q): q is string => typeof q === 'string')
+      : undefined;
+
     return {
       version: parsed.version,
       repo: parsed.repo,
@@ -44,6 +48,7 @@ function parseStoredRepoState(raw: string | null): StoredRepoState | null {
       messages: parsed.messages,
       style: parsed.style,
       updatedAt: parsed.updatedAt,
+      suggestedQuestions,
     };
   } catch {
     return null;
@@ -95,6 +100,29 @@ export function loadStoredRepoState(owner: string, repo: string): StoredRepoStat
   return parseStoredRepoState(localStorage.getItem(getStorageKey(owner, repo)));
 }
 
+export type RecentRepo = { repo: string; updatedAt: string };
+
+/** Cached repos, newest first, for the Home screen's "Recent repos" list. */
+export function listRecentRepos(): RecentRepo[] {
+  pruneRepoEntries();
+  const entries: RecentRepo[] = [];
+
+  for (let index = 0; index < localStorage.length; index += 1) {
+    const key = localStorage.key(index);
+    if (!key || !key.startsWith(STORAGE_PREFIX)) continue;
+    const parsed = parseStoredRepoState(localStorage.getItem(key));
+    if (parsed) entries.push({ repo: parsed.repo, updatedAt: parsed.updatedAt });
+  }
+
+  return entries.sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
+}
+
+/** "created Nd ago" label for a Recent repos card, relative to `updatedAt`. */
+export function formatCreatedLabel(updatedAt: string): string {
+  const days = Math.floor((Date.now() - Date.parse(updatedAt)) / (24 * 60 * 60 * 1000));
+  return days <= 0 ? 'created today' : `created ${days}d ago`;
+}
+
 export function saveStoredRepoState(state: StoredRepoState): void {
   const key = `${STORAGE_PREFIX}${state.repo}`;
   pruneRepoEntries(key);
@@ -110,7 +138,16 @@ export function saveRepoOverview(result: FormResult): void {
     messages: [],
     style: 'caveman',
     updatedAt: new Date().toISOString(),
+    suggestedQuestions: result.suggested_questions,
   });
+}
+
+/** Persists suggestions fetched as a one-off fallback so a chat reopen reuses them
+ *  instead of asking the LLM again — until the repo overview is regenerated. */
+export function saveSuggestedQuestions(owner: string, repo: string, questions: string[]): void {
+  const existing = loadStoredRepoState(owner, repo);
+  if (!existing) return;
+  saveStoredRepoState({ ...existing, suggestedQuestions: questions });
 }
 
 export function clearStoredRepoMessages(owner: string, repo: string): void {
@@ -132,6 +169,7 @@ export function createUpdatedRepoState(
   messages: ChatMessage[],
   style: ChatStyle,
 ): StoredRepoState {
+  const existing = loadStoredRepoState(owner, repo);
   return {
     version: STORAGE_VERSION,
     repo: `${owner}/${repo}`,
@@ -140,5 +178,6 @@ export function createUpdatedRepoState(
     messages,
     style,
     updatedAt: new Date().toISOString(),
+    suggestedQuestions: existing?.suggestedQuestions,
   };
 }

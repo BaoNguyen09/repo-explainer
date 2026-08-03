@@ -251,6 +251,104 @@
   box-shadow: 4px 4px 0 var(--color-shadow);
 }
 
+.dh-history {
+  margin-top: 28px;
+}
+
+.dh-history-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.dh-history-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.dh-history-toggle {
+  position: absolute;
+  right: 0;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--color-accent);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.dh-history-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 616px;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+/* A single under-filled row reads as centered content on the page.
+   Multiple rows: rows are left-aligned so a trailing partial row starts
+   at the left, under the full row(s) above, instead of floating centered. */
+.dh-history-grid-center {
+  justify-content: center;
+}
+
+.dh-history-grid-left {
+  justify-content: flex-start;
+}
+
+.dh-history-grid-expanded {
+  max-height: 164px;
+  overflow-y: auto;
+  padding-bottom: 2px;
+}
+
+.dh-history-card {
+  width: 148px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 7px 10px;
+  background-color: var(--color-bg-elevated);
+  border: 2px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: 3px 3px 0 var(--color-shadow);
+  font-family: inherit;
+  cursor: pointer;
+  text-align: center;
+}
+
+.dh-history-card:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 var(--color-shadow);
+}
+
+.dh-history-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-text-strong);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+.dh-history-created {
+  font-size: 10.5px;
+  color: var(--color-text-muted);
+  line-height: 1.2;
+}
+
 .dh-footer-divider {
   width: 100%;
   height: 3px;

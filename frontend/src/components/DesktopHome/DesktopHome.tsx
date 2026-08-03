@@ -1,5 +1,7 @@
 import { useRef, useState } from 'react';
+import { FiArrowRight } from 'react-icons/fi';
 import githubIcon from '../../assets/github.svg';
+import { formatCreatedLabel, listRecentRepos } from '../../utils/repoStorage';
 import './DesktopHome.css';
 
 type Theme = 'light' | 'dark';
@@ -32,10 +34,18 @@ interface DesktopHomeProps {
   onSubmit: (query: string, instructions: string) => void;
 }
 
+const HISTORY_VISIBLE_COUNT = 4;
+const HISTORY_CARDS_PER_ROW = 4;
+
 export function DesktopHome({ theme, onToggleTheme, error, defaultQuery, onSubmit }: DesktopHomeProps) {
   const [showInstructions, setShowInstructions] = useState(false);
+  const [historyExpanded, setHistoryExpanded] = useState(false);
+  const [history] = useState(() =>
+    listRecentRepos().map((r) => ({ name: r.repo, createdLabel: formatCreatedLabel(r.updatedAt) })),
+  );
   const inputRef = useRef<HTMLInputElement>(null);
   const instructionsRef = useRef<HTMLTextAreaElement>(null);
+  const visibleHistory = historyExpanded ? history : history.slice(0, HISTORY_VISIBLE_COUNT);
 
   const badgeTheme = theme === 'dark' ? 'neutral' : 'light';
   const badgeSrc = `https://api.producthunt.com/widgets/embed-image/v1/follow.svg?product_id=1164116&theme=${badgeTheme}`;
@@ -113,7 +123,7 @@ export function DesktopHome({ theme, onToggleTheme, error, defaultQuery, onSubmi
                 autoComplete="off"
               />
               <button type="submit" className="dh-submit-btn">
-                Explain →
+                Explain<FiArrowRight />
               </button>
             </div>
 
@@ -153,6 +163,42 @@ export function DesktopHome({ theme, onToggleTheme, error, defaultQuery, onSubmi
               ))}
             </div>
           </div>
+
+          {history.length > 0 && (
+            <div className="dh-history">
+              <div className="dh-history-header">
+                <span className="dh-history-label">Recent repos</span>
+                {history.length > HISTORY_VISIBLE_COUNT && (
+                  <button
+                    type="button"
+                    className="dh-history-toggle"
+                    onClick={() => setHistoryExpanded((v) => !v)}
+                  >
+                    {historyExpanded ? 'Show less' : `See all (${history.length})`}
+                  </button>
+                )}
+              </div>
+              <div
+                className={[
+                  'dh-history-grid',
+                  historyExpanded ? 'dh-history-grid-expanded' : '',
+                  visibleHistory.length > HISTORY_CARDS_PER_ROW ? 'dh-history-grid-left' : 'dh-history-grid-center',
+                ].filter(Boolean).join(' ')}
+              >
+                {visibleHistory.map((h) => (
+                  <button
+                    key={h.name}
+                    type="button"
+                    className="dh-history-card"
+                    onClick={() => onSubmit(`https://github.com/${h.name}`, '')}
+                  >
+                    <span className="dh-history-name">{h.name}</span>
+                    <span className="dh-history-created">{h.createdLabel}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

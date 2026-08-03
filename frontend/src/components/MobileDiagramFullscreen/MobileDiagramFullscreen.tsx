@@ -1,4 +1,5 @@
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
+import { FiDownload } from 'react-icons/fi';
 import { useMermaidRender } from '../../hooks/useMermaidRender';
 import { copyMermaidSvg, downloadMermaidPng } from '../../utils/mermaidExport';
 import { MermaidRenderError } from '../MermaidDiagram/MermaidRenderError';
@@ -76,7 +77,7 @@ export function MobileDiagramFullscreen({ code, diagramId, repoName, onClose }: 
             ⧉ Copy SVG
           </button>
           <button type="button" className="mdf-action-btn" onClick={() => downloadMermaidPng(svgContent, diagramId)}>
-            ↓ Download PNG
+            <FiDownload />Download PNG
           </button>
         </div>
       )}

@@ -50,6 +50,7 @@ export function useChat(owner: string, repo: string, explanation: string, defaul
   const mountedRef = useRef(true);
   const messagesRef = useRef<ChatMessage[]>([]);
   const toolEventsRef = useRef<ChatToolEvent[]>([]);
+  const isRespondingRef = useRef(false);
 
   useEffect(() => {
     messagesRef.current = messages;
@@ -58,6 +59,10 @@ export function useChat(owner: string, repo: string, explanation: string, defaul
   useEffect(() => {
     toolEventsRef.current = toolEvents;
   }, [toolEvents]);
+
+  useEffect(() => {
+    isRespondingRef.current = isResponding;
+  }, [isResponding]);
 
   useEffect(() => {
     const stored = loadStoredRepoState(owner, repo);
@@ -212,6 +217,20 @@ export function useChat(owner: string, repo: string, explanation: string, defaul
       setConnectionState('closed');
       setStatus(null);
       setIsResponding(false);
+
+      // A drop mid-response leaves no trace otherwise: the thinking indicator
+      // just disappears and the user has no signal their message needs resending.
+      if (isRespondingRef.current) {
+        setStreamingMessage('');
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: '**Connection lost.** Your last message may not have been answered — please resend it.',
+            timestamp: new Date().toISOString(),
+          },
+        ]);
+      }
 
       if (pingIntervalRef.current) {
         clearInterval(pingIntervalRef.current);

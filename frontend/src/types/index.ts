@@ -34,5 +34,6 @@ export type StoredRepoState = {
   messages: ChatMessage[];
   style: ChatStyle;
   updatedAt: string;
+  suggestedQuestions?: string[];
 };
 

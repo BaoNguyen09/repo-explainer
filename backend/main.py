@@ -467,14 +467,11 @@ async def _run_stream_pipeline(
                 instructions_present=instructions_present,
             )
 
-            # Best-effort: chat suggestions shouldn't fail the overview if this errors.
-            suggested_questions: list[str] = []
-            try:
-                tree = await github.fetch_directory_tree_with_depth(repo_info, depth=3)
-                suggested_questions = await ai_service.suggest_questions(explanation, tree)
-            except Exception:
-                utils.logger.exception("Failed to generate suggested questions for %s/%s", owner, repo)
-
+            # Chat suggestions are fetched separately by the client (POST
+            # /{owner}/{repo}/suggested-questions) right after this event lands,
+            # instead of being generated here — that used to add an extra tree
+            # fetch + LLM call to every explain request before the overview
+            # could even be shown.
             queue.put_nowait(
                 {
                     "done": True,
@@ -484,7 +481,7 @@ async def _run_stream_pipeline(
                         cache=False,
                         timestamp=utils.date_now(),
                         default_branch=default_branch,
-                        suggested_questions=suggested_questions,
+                        suggested_questions=[],
                     ),
                 }
             )

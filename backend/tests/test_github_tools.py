@@ -69,3 +69,32 @@ def test_get_repo_context_all_fetches_fail_still_returns_tree(monkeypatch):
     assert success is True
     assert "Directory structure:" in content
     assert files_failed == 1
+
+
+def test_get_repo_context_handles_empty_root_directory(monkeypatch):
+    """An empty-but-successful root listing (e.g. root holds only subdirectories,
+    like anushka-k-25/hospital-backend) must not be treated as a fetch failure."""
+    github = GitHubTools(MagicMock(), github_token=None)
+    repo = RepoInfo(owner="anushka-k-25", repo_name="hospital-backend")
+
+    async def fake_tree(repo, depth):
+        return "Directory structure:\n└── anushka-k-25/hospital-backend/\n    └── nested/\n        └── pom.xml"
+
+    async def fake_list(repo_arg, path=""):
+        return [], True  # root has only a subdirectory, no files directly in it
+
+    async def fake_explore(tree, repo_prefix=""):
+        return ["nested/pom.xml"]
+
+    async def fake_fetch(repo_arg, path):
+        return f"content of {path}", True
+
+    monkeypatch.setattr(github, "fetch_directory_tree_with_depth", fake_tree)
+    monkeypatch.setattr(github, "list_directory_files", fake_list)
+    monkeypatch.setattr(github, "get_file_contents", fake_fetch)
+    monkeypatch.setattr(github_tools.ai_service, "get_files_to_explore", fake_explore)
+
+    content, success, tree_count, files_read, files_failed = asyncio.run(github.get_repo_context(repo))
+
+    assert success is True
+    assert "content of nested/pom.xml" in content

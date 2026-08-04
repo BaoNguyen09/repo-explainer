@@ -151,6 +151,31 @@
   cursor: pointer;
 }
 
+/* Same footprint as .dl-notify-btn but inert — the ask is already answered. */
+.dl-notify-status {
+  margin-top: 8px;
+  width: 100%;
+  padding: 14px;
+  font-size: 15px;
+  text-align: center;
+  color: var(--color-text-muted);
+  border: 2px dashed var(--color-border);
+  border-radius: 10px;
+  box-sizing: border-box;
+}
+
+.dl-secondary-btn {
+  width: 100%;
+  padding: 10px;
+  font-size: 13px;
+  background: none;
+  color: var(--color-text-muted);
+  border: none;
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
 .dl-cancel-btn {
   width: 100%;
   padding: 10px;

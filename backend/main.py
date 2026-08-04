@@ -9,6 +9,7 @@ import httpx
 from fastapi import FastAPI, HTTPException, Query, Request, WebSocket, WebSocketDisconnect, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+from starlette.datastructures import Headers
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
@@ -18,7 +19,7 @@ from posthog import Posthog
 from backend import GitHubTools
 from backend import ai_service
 from backend import chat_service
-from backend import env, utils
+from backend import env, job_registry, utils
 from backend.schema import ModelResponse, RepoInfo, SuggestedQuestionsRequest
 
 # —— PostHog analytics (no-op when API key is absent) ——
@@ -208,12 +209,11 @@ def _is_allowed_ws_origin(origin: Optional[str]) -> bool:
     return origin in origins
 
 
-def _is_chat_rate_limited(client_id: str) -> bool:
-    """Sliding-window limiter for paid chat turns across WebSocket connections."""
+def _sliding_window_exceeded(bucket: deque[float], limit: int, window_seconds: int) -> bool:
+    """Drop timestamps older than the window; record and admit unless at the limit."""
     now = time.monotonic()
-    window = max(env.CHAT_WS_RATE_LIMIT_WINDOW_SECONDS, 1)
-    limit = max(env.CHAT_WS_RATE_LIMIT_MESSAGES, 1)
-    bucket = _chat_rate_windows[client_id]
+    window = max(window_seconds, 1)
+    limit = max(limit, 1)
 
     while bucket and now - bucket[0] > window:
         bucket.popleft()
@@ -225,6 +225,29 @@ def _is_chat_rate_limited(client_id: str) -> bool:
     return False
 
 
+def _is_chat_rate_limited(client_id: str) -> bool:
+    """Sliding-window limiter for paid chat turns across WebSocket connections."""
+    return _sliding_window_exceeded(
+        _chat_rate_windows[client_id],
+        env.CHAT_WS_RATE_LIMIT_MESSAGES,
+        env.CHAT_WS_RATE_LIMIT_WINDOW_SECONDS,
+    )
+
+
+def _is_explain_rate_limited(client_id: str) -> bool:
+    """Sliding-window limiter counting only *new* explain jobs.
+
+    Applied in code rather than as a slowapi decorator because reconnecting to
+    an already-running job must be free: a user who reloads the page five times
+    while one repo is being explained should not burn five days' worth of quota.
+    """
+    return _sliding_window_exceeded(
+        _explain_rate_windows[client_id],
+        env.EXPLAIN_RATE_LIMIT_JOBS,
+        env.EXPLAIN_RATE_LIMIT_WINDOW_SECONDS,
+    )
+
+
 limiter = Limiter(key_func=get_remote_address)
 app = FastAPI()
 app.state.limiter = limiter
@@ -232,6 +255,7 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 origins = [origin.strip() for origin in env.CORS_ORIGINS.split(",") if origin.strip()]
 _chat_rate_windows: dict[str, deque[float]] = defaultdict(deque)
+_explain_rate_windows: dict[str, deque[float]] = defaultdict(deque)
 
 app.add_middleware(
     CORSMiddleware,
@@ -381,6 +405,26 @@ async def explain_repo(
         )
 
 
+class _RequestSnapshot:
+    """The parts of a Request a detached explain job still needs after it returns.
+
+    A background job outlives the HTTP request that started it, and a Starlette
+    Request is tied to that connection's scope, so the job copies out the client
+    IP, headers, and query params it needs for the GitHub token and analytics
+    instead of holding the live object. Shaped like a Request only where
+    `track_event`/`get_remote_address` look.
+    """
+
+    __slots__ = ("client", "headers", "query_params")
+
+    def __init__(self, request: Request) -> None:
+        self.client = request.client
+        # Headers (not a plain dict) so case-insensitive lookups like
+        # "X-GitHub-Token" keep working the way they do on a real Request.
+        self.headers = Headers(raw=list(request.headers.raw))
+        self.query_params = dict(request.query_params)
+
+
 def _sse_event(event_type: str, data: Any) -> str:
     """Format one SSE event (event type + data line, double newline)."""
     payload = json.dumps(data) if not isinstance(data, str) else data
@@ -392,10 +436,15 @@ async def _run_stream_pipeline(
     repo: str,
     ref: Optional[str],
     instructions: Optional[str],
-    request: Request,
-    queue: asyncio.Queue,
+    request: Any,
+    queue: Any,
 ) -> None:
-    """Run get_repo_context + explain_repo and push status/result/error to queue."""
+    """Run get_repo_context + explain_repo and push status/result/error to queue.
+
+    `request` is a `_RequestSnapshot` in production (the job outlives the real
+    Request) and `queue` is an `ExplainJob`, which quacks like an asyncio.Queue
+    so this pipeline is identical whether or not anyone is currently listening.
+    """
     start = time.perf_counter()
     instructions_present = bool(instructions and instructions.strip())
     first_event_ms: Optional[float] = None
@@ -501,19 +550,13 @@ async def _run_stream_pipeline(
         queue.put_nowait({"error": str(e)})
 
 
-async def _stream_generator(
-    owner: str,
-    repo: str,
-    ref: Optional[str],
-    instructions: Optional[str],
-    request: Request,
-) -> Any:
-    """Yield SSE events: status (stage), then result or error."""
-    yield _sse_event("status", {"stage": "validating"})
+async def _validate_repo_exists(owner: str, repo: str) -> Optional[str]:
+    """Return a user-facing error message if the repo can't be reached, else None."""
     try:
         async with httpx.AsyncClient(follow_redirects=True) as client:
             res = await client.get(f"https://github.com/{owner}/{repo}")
             res.raise_for_status()
+        return None
     except httpx.HTTPStatusError as e:
         status_code = e.response.status_code
         error_messages = {
@@ -521,21 +564,72 @@ async def _stream_generator(
             404: f"Repository '{owner}/{repo}' not found. Please check the owner and repository name.",
             429: "Too many requests to GitHub. Please try again later.",
         }
-        detail = error_messages.get(status_code, f"Error accessing repository (HTTP {status_code})")
-        yield _sse_event("error", {"detail": detail})
-        return
+        return error_messages.get(status_code, f"Error accessing repository (HTTP {status_code})")
     except Exception:
-        yield _sse_event("error", {"detail": "Could not validate repository."})
-        return
+        return "Could not validate repository."
 
-    queue: asyncio.Queue = asyncio.Queue()
-    task = asyncio.create_task(_run_stream_pipeline(owner, repo, ref, instructions, request, queue))
+
+async def _stream_generator(
+    owner: str,
+    repo: str,
+    ref: Optional[str],
+    instructions: Optional[str],
+    request: Request,
+    resume: bool = False,
+) -> Any:
+    """Yield SSE events: status (stage), then result or error.
+
+    The connection attaches to a job rather than owning one. If a job for this
+    repo is already running it is followed from where it is (replaying the
+    stages already emitted), and when this connection goes away the job keeps
+    running — so a reload re-attaches instead of paying for the work twice, and
+    a user who moves on to another repo doesn't abort the first one.
+
+    `resume` marks a reconnect from a client that believes it already has a job
+    in flight; it is what lets a *just-finished* job still deliver its result,
+    while a normal submit (or an explicit regenerate) always starts fresh.
+    """
+    key = job_registry.job_key(owner, repo, ref, instructions)
+    job = job_registry.find(key)
+    started_here = False
+
+    if job is None or (job.done and not resume):
+        # Charged before the outbound GitHub call, not after: validation is the
+        # expensive part of a rejected request, so checking quota afterwards
+        # would let a caller drive unlimited github.com traffic for free.
+        if _is_explain_rate_limited(get_remote_address(request)):
+            yield _sse_event("error", {"detail": "Rate limit exceeded. Please try again later."})
+            return
+
+        # Validate before a job exists so a bad URL fails fast and cheaply.
+        yield _sse_event("status", {"stage": "validating"})
+        detail = await _validate_repo_exists(owner, repo)
+        if detail:
+            yield _sse_event("error", {"detail": detail})
+            return
+
+        snapshot = _RequestSnapshot(request)
+
+        async def runner(new_job: job_registry.ExplainJob) -> None:
+            await _run_stream_pipeline(owner, repo, ref, instructions, snapshot, new_job)
+
+        job = job_registry.start(key, owner, repo, runner)
+        started_here = True
+
+    queue = job.subscribe()
+    if started_here:
+        # Seeded after subscribing so this connection — which was handed the
+        # event directly above — doesn't see it twice, while a later reconnect
+        # still replays the full stage sequence from the beginning.
+        job.seed("validating")
 
     try:
         while True:
             try:
                 item = await asyncio.wait_for(queue.get(), timeout=300.0)
             except asyncio.TimeoutError:
+                # Only this connection gives up; the job stays alive so the
+                # client can reconnect and pick the result back up.
                 yield _sse_event("error", {"detail": "Request timed out."})
                 break
 
@@ -552,11 +646,7 @@ async def _stream_generator(
                     yield _sse_event("result", data)
                     break
     finally:
-        task.cancel()
-        try:
-            await task
-        except asyncio.CancelledError:
-            pass
+        job.unsubscribe(queue)
 
 
 @app.post("/{owner}/{repo}/suggested-questions")
@@ -749,17 +839,29 @@ async def chat_websocket(
         500: {"description": "Internal server error"},
     },
 )
-@limiter.limit("20/day")
+@limiter.limit(env.EXPLAIN_STREAM_REQUEST_RATE_LIMIT)
 async def explain_repo_stream(
     request: Request,
     owner: str,
     repo: str,
     ref: Optional[str] = None,
     instructions: Optional[str] = Query(None),
+    resume: bool = Query(False),
 ):
-    """SSE endpoint: streams status events then result or error."""
+    """SSE endpoint: streams status events then result or error.
+
+    Two limits apply, because connection count and work done are no longer the
+    same thing once a job outlives its connection:
+
+    * the decorator caps *requests*, including reconnects, so attaching to an
+      existing job can't be used to open connections without bound;
+    * `_is_explain_rate_limited` caps *new jobs* (see `_stream_generator`), so
+      reloading during a long run costs nothing against the daily budget.
+
+    The decorator's limit is therefore a burst ceiling, not a daily quota.
+    """
     return StreamingResponse(
-        _stream_generator(owner, repo, ref, instructions, request),
+        _stream_generator(owner, repo, ref, instructions, request, resume=resume),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-store",

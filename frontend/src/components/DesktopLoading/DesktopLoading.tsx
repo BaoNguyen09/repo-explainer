@@ -19,6 +19,7 @@ interface DesktopLoadingProps {
   notifyEnabled: boolean;
   notifySupported: boolean;
   onEnableNotify: () => void;
+  onRunInBackground: () => void;
   onCancel: () => void;
 }
 
@@ -28,6 +29,7 @@ export function DesktopLoading({
   notifyEnabled,
   notifySupported,
   onEnableNotify,
+  onRunInBackground,
   onCancel,
 }: DesktopLoadingProps) {
   const [elapsed, setElapsed] = useState(0);
@@ -89,11 +91,19 @@ export function DesktopLoading({
             );
           })}
 
-          {notifySupported && (
-            <button type="button" className="dl-notify-btn" onClick={onEnableNotify}>
-              {notifyEnabled ? "✓ We'll notify you when it's ready" : "🔔 Notify me when it's ready"}
-            </button>
-          )}
+          {/* Once permission is granted there is nothing left to ask for, so this
+              becomes a confirmation rather than a button that reprompts. */}
+          {notifySupported &&
+            (notifyEnabled ? (
+              <div className="dl-notify-status">✓ We'll notify you when it's ready</div>
+            ) : (
+              <button type="button" className="dl-notify-btn" onClick={onEnableNotify}>
+                🔔 Notify me when it's ready
+              </button>
+            ))}
+          <button type="button" className="dl-secondary-btn" onClick={onRunInBackground}>
+            Explain another repo — this keeps running
+          </button>
           <button type="button" className="dl-cancel-btn" onClick={onCancel}>
             Cancel
           </button>

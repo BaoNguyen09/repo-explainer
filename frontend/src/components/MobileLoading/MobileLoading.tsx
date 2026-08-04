@@ -22,6 +22,7 @@ interface MobileLoadingProps {
   notifyEnabled: boolean;
   notifySupported: boolean;
   onEnableNotify: () => void;
+  onRunInBackground: () => void;
   onCancel: () => void;
 }
 
@@ -31,6 +32,7 @@ export function MobileLoading({
   notifyEnabled,
   notifySupported,
   onEnableNotify,
+  onRunInBackground,
   onCancel,
 }: MobileLoadingProps) {
   const [elapsed, setElapsed] = useState(0);
@@ -94,11 +96,19 @@ export function MobileLoading({
       </div>
 
       <div className="ml-actions">
-        {notifySupported && (
-          <button type="button" className="ml-notify-btn" onClick={onEnableNotify}>
-            {notifyEnabled ? "✓ We'll notify you when it's ready" : "🔔 Notify me when it's ready"}
-          </button>
-        )}
+        {/* Once permission is granted there is nothing left to ask for, so this
+            becomes a confirmation rather than a button that reprompts. */}
+        {notifySupported &&
+          (notifyEnabled ? (
+            <div className="ml-notify-status">✓ We'll notify you when it's ready</div>
+          ) : (
+            <button type="button" className="ml-notify-btn" onClick={onEnableNotify}>
+              🔔 Notify me when it's ready
+            </button>
+          ))}
+        <button type="button" className="ml-secondary-btn" onClick={onRunInBackground}>
+          Explain another repo — this keeps running
+        </button>
         <button type="button" className="ml-cancel-btn" onClick={onCancel}>
           Cancel
         </button>
